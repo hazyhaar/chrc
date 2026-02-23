@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Stdout writes JSON lines to an io.Writer (default os.Stdout).

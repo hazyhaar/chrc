@@ -27,11 +27,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/hazyhaar/pkg/domkeeper/internal/chunk"
-	"github.com/hazyhaar/pkg/domkeeper/internal/ingest"
-	"github.com/hazyhaar/pkg/domkeeper/internal/schedule"
-	"github.com/hazyhaar/pkg/domkeeper/internal/store"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domkeeper/internal/chunk"
+	"github.com/hazyhaar/chrc/domkeeper/internal/ingest"
+	"github.com/hazyhaar/chrc/domkeeper/internal/schedule"
+	"github.com/hazyhaar/chrc/domkeeper/internal/store"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 	"github.com/hazyhaar/pkg/vtq"
 )
 

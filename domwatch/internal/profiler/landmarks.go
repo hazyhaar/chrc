@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // findLandmarks detects HTML5 landmark elements in the DOM.

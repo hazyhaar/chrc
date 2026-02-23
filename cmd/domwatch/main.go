@@ -19,8 +19,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/hazyhaar/pkg/domwatch"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 	"github.com/hazyhaar/pkg/idgen"
 )
 

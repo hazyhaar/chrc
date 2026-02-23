@@ -5,8 +5,8 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/hazyhaar/pkg/domwatch/internal/sink"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/internal/sink"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Sink is the output interface for domwatch mutations.

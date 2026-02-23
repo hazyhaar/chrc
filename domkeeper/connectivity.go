@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hazyhaar/pkg/connectivity"
-	"github.com/hazyhaar/pkg/domkeeper/internal/store"
+	"github.com/hazyhaar/chrc/domkeeper/internal/store"
 	"github.com/hazyhaar/pkg/idgen"
 )
 

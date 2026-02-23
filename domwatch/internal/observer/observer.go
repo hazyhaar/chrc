@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
-	"github.com/hazyhaar/pkg/domwatch/internal/sink"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/internal/sink"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 	"github.com/hazyhaar/pkg/idgen"
 )
 

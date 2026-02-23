@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/hazyhaar/pkg/domkeeper/internal/store"
+	"github.com/hazyhaar/chrc/domkeeper/internal/store"
 	"github.com/hazyhaar/pkg/idgen"
 	"github.com/hazyhaar/pkg/vtq"
 )

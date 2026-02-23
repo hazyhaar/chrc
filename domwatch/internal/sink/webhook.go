@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Webhook POSTs JSON to a URL with retry and exponential backoff.

@@ -1,7 +1,7 @@
 package domkeeper
 
 import (
-	"github.com/hazyhaar/pkg/domwatch"
+	"github.com/hazyhaar/chrc/domwatch"
 )
 
 // Sink returns a domwatch.Sink that feeds into this Keeper's ingestion pipeline.

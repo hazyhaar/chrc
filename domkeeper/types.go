@@ -1,6 +1,6 @@
 package domkeeper
 
-import "github.com/hazyhaar/pkg/domkeeper/internal/store"
+import "github.com/hazyhaar/chrc/domkeeper/internal/store"
 
 // Re-exported types from internal/store for use by cmd/ and external callers.
 type (

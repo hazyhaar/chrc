@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
 )
 
 // computeFingerprint generates a structural hash of the DOM: tags + depth +

@@ -4,7 +4,7 @@ package sink
 import (
 	"context"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Sink is the output interface. Implementations deliver mutations to

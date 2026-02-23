@@ -16,13 +16,13 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/hazyhaar/pkg/connectivity"
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
-	"github.com/hazyhaar/pkg/domwatch/internal/config"
-	"github.com/hazyhaar/pkg/domwatch/internal/fetcher"
-	"github.com/hazyhaar/pkg/domwatch/internal/observer"
-	"github.com/hazyhaar/pkg/domwatch/internal/profiler"
-	"github.com/hazyhaar/pkg/domwatch/internal/sink"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/internal/config"
+	"github.com/hazyhaar/chrc/domwatch/internal/fetcher"
+	"github.com/hazyhaar/chrc/domwatch/internal/observer"
+	"github.com/hazyhaar/chrc/domwatch/internal/profiler"
+	"github.com/hazyhaar/chrc/domwatch/internal/sink"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Watcher is the top-level orchestrator. It manages the browser, observers,

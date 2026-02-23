@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Router fans out mutations to all configured sinks. One sink error

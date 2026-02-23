@@ -1,7 +1,7 @@
 package domwatch
 
 import (
-	"github.com/hazyhaar/pkg/domwatch/internal/config"
+	"github.com/hazyhaar/chrc/domwatch/internal/config"
 )
 
 // Config is the top-level domwatch configuration. Re-exported from internal.

@@ -3,7 +3,7 @@ package observer
 import (
 	"time"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // debounceConfig controls the batching behaviour.

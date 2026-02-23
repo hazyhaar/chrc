@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 	"github.com/hazyhaar/pkg/idgen"
 )
 

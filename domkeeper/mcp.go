@@ -6,7 +6,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/hazyhaar/pkg/domkeeper/internal/store"
+	"github.com/hazyhaar/chrc/domkeeper/internal/store"
 	"github.com/hazyhaar/pkg/idgen"
 	"github.com/hazyhaar/pkg/kit"
 )

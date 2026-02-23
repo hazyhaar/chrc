@@ -20,7 +20,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/hazyhaar/pkg/domkeeper"
+	"github.com/hazyhaar/chrc/domkeeper"
 )
 
 func main() {

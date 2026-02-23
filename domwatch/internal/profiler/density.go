@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
 )
 
 // computeTextDensity calculates the text-to-markup ratio for major DOM subtrees.

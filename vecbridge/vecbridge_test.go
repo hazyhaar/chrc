@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hazyhaar/pkg/dbopen"
-	"github.com/hazyhaar/pkg/horosvec"
+	"github.com/hazyhaar/horosvec"
 )
 
 func TestServiceRoundTrip(t *testing.T) {

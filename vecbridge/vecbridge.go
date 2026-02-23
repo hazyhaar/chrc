@@ -22,7 +22,7 @@ import (
 	"math"
 
 	"github.com/hazyhaar/pkg/dbopen"
-	"github.com/hazyhaar/pkg/horosvec"
+	"github.com/hazyhaar/horosvec"
 )
 
 // Config configures the vecbridge service.

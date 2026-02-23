@@ -10,8 +10,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/hazyhaar/pkg/domwatch/internal/browser"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/internal/browser"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // Config for profiling.

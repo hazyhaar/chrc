@@ -3,7 +3,7 @@ package observer
 import (
 	"testing"
 
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 func TestCompress_ConsecutiveAttr(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/hazyhaar/pkg/domwatch/mutation"
+	"github.com/hazyhaar/chrc/domwatch/mutation"
 )
 
 // cdpListener subscribes to CDP DOM events on a page and feeds records
