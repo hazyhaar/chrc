@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/hazyhaar/chrc/domkeeper/internal/chunk"
-	"github.com/hazyhaar/chrc/domkeeper/internal/extract"
+	"github.com/hazyhaar/chrc/chunk"
+	"github.com/hazyhaar/chrc/extract"
 	"github.com/hazyhaar/chrc/domkeeper/internal/store"
 	"github.com/hazyhaar/chrc/domwatch/mutation"
 	"github.com/hazyhaar/pkg/idgen"

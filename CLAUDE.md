@@ -11,11 +11,19 @@ Prototypes RAG et web scraping créés par Claude GitHub. Contient les composant
 
 | Package | Rôle |
 |---------|------|
+| [`veille/`](veille/CLAUDE.md) | **Veille informationnelle** — acquisition et indexation de contenu multi-tenant |
 | `domwatch/` | DOM observation daemon — mutation tracking via CDP (go-rod) |
 | `domkeeper/` | Content extraction engine auto-réparant, scheduling, chunking |
 | `docpipe/` | Pipeline d'extraction de documents (PDF, DOCX, ODT, HTML, texte) |
 | `horosembed/` | Client embeddings, vector operations |
 | `vecbridge/` | Bridge vectoriel MCP entre horosvec et les services |
+
+### Bibliothèques partagées (top-level)
+
+| Package | Rôle |
+|---------|------|
+| `extract/` | Extraction HTML (CSS, XPath, density, auto) — partagé par domkeeper et veille |
+| `chunk/` | Découpage texte RAG avec overlap — partagé par domkeeper et veille |
 
 ## Build
 

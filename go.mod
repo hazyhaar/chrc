@@ -5,8 +5,8 @@ go 1.24.7
 require (
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
-	github.com/hazyhaar/horosvec v0.0.0-20260223204459-b33534301f81
-	github.com/hazyhaar/pkg v0.0.0-20260223201812-581f9dae38ae
+	github.com/hazyhaar/horosvec v0.0.0-20260224091408-6993d04099a2
+	github.com/hazyhaar/pkg v0.0.0-20260224091357-ba355365ef24
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	golang.org/x/net v0.46.0
 	gopkg.in/yaml.v3 v3.0.1

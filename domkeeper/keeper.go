@@ -27,7 +27,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/hazyhaar/chrc/domkeeper/internal/chunk"
+	"github.com/hazyhaar/chrc/chunk"
 	"github.com/hazyhaar/chrc/domkeeper/internal/ingest"
 	"github.com/hazyhaar/chrc/domkeeper/internal/schedule"
 	"github.com/hazyhaar/chrc/domkeeper/internal/store"
