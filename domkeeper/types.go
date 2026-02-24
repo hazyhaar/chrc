@@ -12,4 +12,7 @@ type (
 	Chunk         = store.Chunk
 	IngestEntry   = store.IngestEntry
 	SourcePage    = store.SourcePage
+	GPUPricing    = store.GPUPricing
+	GPUThreshold  = store.GPUThreshold
+	SearchTierLog = store.SearchTierLog
 )

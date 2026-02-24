@@ -14,6 +14,7 @@ import (
 // RegisterMCP registers domkeeper tools on an MCP server.
 func (k *Keeper) RegisterMCP(srv *mcp.Server) {
 	k.registerSearchTool(srv)
+	k.registerPremiumSearchTool(srv)
 	k.registerAddRuleTool(srv)
 	k.registerListRulesTool(srv)
 	k.registerDeleteRuleTool(srv)
@@ -21,6 +22,8 @@ func (k *Keeper) RegisterMCP(srv *mcp.Server) {
 	k.registerListFoldersTool(srv)
 	k.registerStatsTool(srv)
 	k.registerGetContentTool(srv)
+	k.registerGPUStatsTool(srv)
+	k.registerGPUThresholdTool(srv)
 }
 
 // inputSchema builds a JSON Schema object with type "object".
@@ -330,6 +333,90 @@ func (k *Keeper) registerGetContentTool(srv *mcp.Server) {
 
 	decode := func(req *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
 		var r getContentRequest
+		if err := json.Unmarshal(req.Params.Arguments, &r); err != nil {
+			return nil, err
+		}
+		return &kit.MCPDecodeResult{Request: &r}, nil
+	}
+
+	kit.RegisterMCPTool(srv, tool, endpoint, decode)
+}
+
+// --- premium_search ---
+
+func (k *Keeper) registerPremiumSearchTool(srv *mcp.Server) {
+	tool := &mcp.Tool{
+		Name:        "domkeeper_premium_search",
+		Description: "Tiered search on extracted content. Free tier: single FTS pass. Premium tier: multi-pass retrieval with trust-level boosting and deduplication.",
+		InputSchema: inputSchema(map[string]any{
+			"query":       map[string]any{"type": "string", "description": "Search query"},
+			"folder_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Filter by folder IDs"},
+			"trust_level": map[string]any{"type": "string", "enum": []any{"official", "institutional", "community", "unverified"}, "description": "Filter by trust level"},
+			"limit":       map[string]any{"type": "integer", "description": "Max results (default 20)"},
+			"tier":        map[string]any{"type": "string", "enum": []any{"free", "premium"}, "description": "Search tier (default: free)"},
+			"max_passes":  map[string]any{"type": "integer", "description": "Max retrieval passes for premium tier (default: 3)"},
+			"user_id":     map[string]any{"type": "string", "description": "User ID for analytics"},
+		}, []string{"query"}),
+	}
+
+	endpoint := func(ctx context.Context, req any) (any, error) {
+		r := req.(*PremiumSearchOptions)
+		return k.PremiumSearch(ctx, *r)
+	}
+
+	decode := func(req *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
+		var r PremiumSearchOptions
+		if err := json.Unmarshal(req.Params.Arguments, &r); err != nil {
+			return nil, err
+		}
+		return &kit.MCPDecodeResult{Request: &r}, nil
+	}
+
+	kit.RegisterMCPTool(srv, tool, endpoint, decode)
+}
+
+// --- gpu_stats ---
+
+func (k *Keeper) registerGPUStatsTool(srv *mcp.Server) {
+	tool := &mcp.Tool{
+		Name:        "domkeeper_gpu_stats",
+		Description: "Get GPU pricing and serverless/dedicated threshold status.",
+		InputSchema: inputSchema(map[string]any{}, nil),
+	}
+
+	endpoint := func(ctx context.Context, _ any) (any, error) {
+		return k.GPUStats(ctx)
+	}
+
+	decode := func(_ *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
+		return &kit.MCPDecodeResult{Request: nil}, nil
+	}
+
+	kit.RegisterMCPTool(srv, tool, endpoint, decode)
+}
+
+// --- gpu_threshold ---
+
+type gpuThresholdRequest struct {
+	BacklogUnits int `json:"backlog_units"`
+}
+
+func (k *Keeper) registerGPUThresholdTool(srv *mcp.Server) {
+	tool := &mcp.Tool{
+		Name:        "domkeeper_gpu_threshold",
+		Description: "Recompute the GPU serverless vs dedicated decision based on current backlog.",
+		InputSchema: inputSchema(map[string]any{
+			"backlog_units": map[string]any{"type": "integer", "description": "Number of units (pages/embeddings) in the processing backlog"},
+		}, []string{"backlog_units"}),
+	}
+
+	endpoint := func(ctx context.Context, req any) (any, error) {
+		r := req.(*gpuThresholdRequest)
+		return k.ComputeGPUThreshold(ctx, r.BacklogUnits)
+	}
+
+	decode := func(req *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
+		var r gpuThresholdRequest
 		if err := json.Unmarshal(req.Params.Arguments, &r); err != nil {
 			return nil, err
 		}

@@ -122,4 +122,45 @@ CREATE TABLE IF NOT EXISTS source_pages (
     created_at   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_source_url ON source_pages(page_url);
+
+-- GPU pricing: provider rates for serverless/dedicated GPU burst
+CREATE TABLE IF NOT EXISTS gpu_pricing (
+    id              TEXT PRIMARY KEY,
+    provider        TEXT NOT NULL,
+    gpu_model       TEXT NOT NULL,
+    cost_per_sec    REAL NOT NULL,
+    min_commit_hrs  REAL NOT NULL DEFAULT 0,
+    throughput      REAL NOT NULL,
+    cost_per_unit   REAL NOT NULL,
+    is_dedicated    INTEGER NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL DEFAULT 'active',
+    measured_at     INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gpu_provider ON gpu_pricing(provider);
+CREATE INDEX IF NOT EXISTS idx_gpu_status ON gpu_pricing(status);
+
+-- GPU threshold: computed serverless vs dedicated decision
+CREATE TABLE IF NOT EXISTS gpu_threshold (
+    id              TEXT PRIMARY KEY DEFAULT 'default',
+    backlog_units   INTEGER NOT NULL DEFAULT 0,
+    serverless_cost REAL NOT NULL DEFAULT 0,
+    dedicated_cost  REAL NOT NULL DEFAULT 0,
+    decision        TEXT NOT NULL DEFAULT 'serverless',
+    computed_at     INTEGER NOT NULL
+);
+
+-- Search tiers: tracks premium vs free search usage
+CREATE TABLE IF NOT EXISTS search_tiers (
+    id             TEXT PRIMARY KEY,
+    user_id        TEXT NOT NULL DEFAULT '',
+    tier           TEXT NOT NULL DEFAULT 'free',
+    query          TEXT NOT NULL,
+    passes         INTEGER NOT NULL DEFAULT 1,
+    results_count  INTEGER NOT NULL DEFAULT 0,
+    latency_ms     INTEGER NOT NULL DEFAULT 0,
+    created_at     INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_search_tiers_user ON search_tiers(user_id);
+CREATE INDEX IF NOT EXISTS idx_search_tiers_tier ON search_tiers(tier);
+CREATE INDEX IF NOT EXISTS idx_search_tiers_time ON search_tiers(created_at DESC);
 `
