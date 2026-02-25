@@ -18,6 +18,8 @@ require (
 
 replace github.com/hazyhaar/usertenant => ../usertenant
 
+replace github.com/hazyhaar/pkg => ../hazyhaar_pkg
+
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

@@ -1,6 +1,12 @@
 var SearchView = (function () {
     var currentSpaceId = null;
 
+    function stripHTML(str) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = str;
+        return tmp.textContent || tmp.innerText || '';
+    }
+
     function render(container, spaceId) {
         currentSpaceId = spaceId;
         Dom.clear(container);
@@ -57,10 +63,11 @@ var SearchView = (function () {
 
             data.forEach(function (r) {
                 var preview = Dom.el('div', { class: 'extraction-preview', style: 'display: none;' });
-                preview.textContent = r.text || '';
+                preview.textContent = stripHTML(r.text || '');
 
-                var snippet = (r.text || '').slice(0, 200);
-                if ((r.text || '').length > 200) snippet += '...';
+                var cleaned = stripHTML(r.text || '');
+                var snippet = cleaned.slice(0, 200);
+                if (cleaned.length > 200) snippet += '...';
 
                 var card = Dom.el('div', { class: 'card', style: 'margin-bottom: 8px; cursor: pointer;', onClick: function () {
                     preview.style.display = preview.style.display === 'none' ? 'block' : 'none';

@@ -28,6 +28,8 @@ import (
 	"github.com/hazyhaar/pkg/dbopen"
 	"github.com/hazyhaar/pkg/horosafe"
 	"github.com/hazyhaar/pkg/idgen"
+	"github.com/hazyhaar/pkg/ratelimit"
+	"github.com/hazyhaar/pkg/redact"
 	"github.com/hazyhaar/pkg/shield"
 	"github.com/hazyhaar/pkg/mcpquic"
 	"github.com/hazyhaar/pkg/trace"
@@ -39,6 +41,11 @@ import (
 
 //go:embed static
 var staticFS embed.FS
+
+var engineRedactor = redact.New(
+	redact.Custom("env_var_ref", `\$\{[A-Z_][A-Z0-9_]*\}`, "[env]"),
+	redact.Defaults(),
+)
 
 func main() {
 	port := env("PORT", "8085")
@@ -127,6 +134,16 @@ func main() {
 		os.Exit(1)
 	}
 	defer auditLogger.Close()
+
+	// Rate limiter (writes to catalog DB).
+	limiter := ratelimit.New(catalogDB)
+	if err := limiter.Init(); err != nil {
+		slog.Error("ratelimit init", "error", err)
+		os.Exit(1)
+	}
+	limiter.AddRule("ip:login", 5, 60)
+	limiter.Reload()
+	limiter.StartReloader(ctx)
 
 	// Seed admin user if no admin exists.
 	if err := seedAdmin(ctx, catalogDB); err != nil {
@@ -217,7 +234,8 @@ func main() {
 	})
 
 	// Public auth endpoints (no session required).
-	r.Post("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+	loginRL := limiter.HTTPMiddleware(5, time.Minute)
+	r.With(loginRL).Post("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`
@@ -1270,7 +1288,7 @@ func listGlobalEngines(ctx context.Context, db *sql.DB) ([]map[string]any, error
 		}
 		engines = append(engines, map[string]any{
 			"id": id, "name": name, "strategy": strategy, "url_template": urlTemplate,
-			"api_config": apiConfig, "selectors": selectors, "rate_limit_ms": rateLimitMs,
+			"api_config": engineRedactor.Sanitize(apiConfig), "selectors": selectors, "rate_limit_ms": rateLimitMs,
 			"max_pages": maxPages, "enabled": enabled != 0, "created_at": createdAt, "updated_at": updatedAt,
 		})
 	}
