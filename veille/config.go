@@ -22,6 +22,10 @@ type Config struct {
 	// BufferDir is the directory for .md buffer output (pending/).
 	// If empty, buffer writing is disabled.
 	BufferDir string
+
+	// SweepInterval is how often the sweeper probes broken sources.
+	// Default: 6 hours.
+	SweepInterval time.Duration
 }
 
 func (c *Config) defaults() {

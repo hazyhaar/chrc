@@ -3,20 +3,21 @@ package store
 
 // Source represents a monitored URL.
 type Source struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	URL           string `json:"url"`
-	SourceType    string `json:"source_type"`
-	FetchInterval int64  `json:"fetch_interval"` // ms
-	Enabled       bool   `json:"enabled"`
-	ConfigJSON    string `json:"config_json"`
-	LastFetchedAt *int64 `json:"last_fetched_at,omitempty"`
-	LastHash      string `json:"last_hash"`
-	LastStatus    string `json:"last_status"`
-	LastError     string `json:"last_error"`
-	FailCount     int    `json:"fail_count"`
-	CreatedAt     int64  `json:"created_at"`
-	UpdatedAt     int64  `json:"updated_at"`
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	URL                   string `json:"url"`
+	SourceType            string `json:"source_type"`
+	FetchInterval         int64  `json:"fetch_interval"` // ms
+	Enabled               bool   `json:"enabled"`
+	ConfigJSON            string `json:"config_json"`
+	LastFetchedAt         *int64 `json:"last_fetched_at,omitempty"`
+	LastHash              string `json:"last_hash"`
+	LastStatus            string `json:"last_status"`
+	LastError             string `json:"last_error"`
+	FailCount             int    `json:"fail_count"`
+	OriginalFetchInterval *int64 `json:"original_fetch_interval,omitempty"` // non-nil when backoff is active
+	CreatedAt             int64  `json:"created_at"`
+	UpdatedAt             int64  `json:"updated_at"`
 }
 
 // Extraction represents content extracted from a source at a point in time.

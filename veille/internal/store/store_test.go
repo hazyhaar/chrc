@@ -723,3 +723,164 @@ func TestStats(t *testing.T) {
 		t.Errorf("fetch_logs: got %d", stats.FetchLogs)
 	}
 }
+
+func TestListBrokenSources(t *testing.T) {
+	// WHAT: ListBrokenSources returns sources with errors or broken status.
+	// WHY: Sweep and admin dashboard need to find all failing sources.
+	db := openTestDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+
+	s.InsertSource(ctx, &Source{ID: "ok", Name: "OK", URL: "https://ok.com", Enabled: true, LastStatus: "ok"})
+	s.InsertSource(ctx, &Source{ID: "err", Name: "Error", URL: "https://err.com", Enabled: true, LastStatus: "error", FailCount: 3})
+	s.InsertSource(ctx, &Source{ID: "broken", Name: "Broken", URL: "https://broken.com", Enabled: true, LastStatus: "broken", FailCount: 10})
+	s.InsertSource(ctx, &Source{ID: "pending", Name: "Pending", URL: "https://pending.com", Enabled: true, LastStatus: "pending"})
+	s.InsertSource(ctx, &Source{ID: "ext-err", Name: "ExtractErr", URL: "https://ext-err.com", Enabled: true, LastStatus: "extract_error", FailCount: 1})
+
+	broken, err := s.ListBrokenSources(ctx)
+	if err != nil {
+		t.Fatalf("list broken: %v", err)
+	}
+
+	ids := make(map[string]bool)
+	for _, src := range broken {
+		ids[src.ID] = true
+	}
+	if !ids["err"] {
+		t.Error("'err' should be in broken list")
+	}
+	if !ids["broken"] {
+		t.Error("'broken' should be in broken list")
+	}
+	if !ids["ext-err"] {
+		t.Error("'ext-err' should be in broken list")
+	}
+	if ids["ok"] {
+		t.Error("'ok' should NOT be in broken list")
+	}
+	if ids["pending"] {
+		t.Error("'pending' should NOT be in broken list")
+	}
+	// Should be ordered by fail_count DESC.
+	if len(broken) >= 2 && broken[0].FailCount < broken[1].FailCount {
+		t.Error("should be ordered by fail_count DESC")
+	}
+}
+
+func TestResetSource(t *testing.T) {
+	// WHAT: ResetSource clears fail_count, status, error, and restores original interval.
+	// WHY: Recovered sources must return to normal scheduling.
+	db := openTestDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+
+	orig := int64(3600000)
+	s.InsertSource(ctx, &Source{
+		ID: "src-reset", Name: "Reset", URL: "https://reset.com", Enabled: true,
+		FetchInterval: 14400000, LastStatus: "broken", LastError: "http 404",
+		FailCount: 10, OriginalFetchInterval: &orig,
+	})
+
+	if err := s.ResetSource(ctx, "src-reset"); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+
+	got, _ := s.GetSource(ctx, "src-reset")
+	if got.FailCount != 0 {
+		t.Errorf("fail_count: got %d, want 0", got.FailCount)
+	}
+	if got.LastStatus != "pending" {
+		t.Errorf("status: got %q, want pending", got.LastStatus)
+	}
+	if got.LastError != "" {
+		t.Errorf("error: got %q, want empty", got.LastError)
+	}
+	if got.FetchInterval != 3600000 {
+		t.Errorf("fetch_interval: got %d, want 3600000 (restored)", got.FetchInterval)
+	}
+	if got.OriginalFetchInterval != nil {
+		t.Errorf("original_fetch_interval: should be nil after reset, got %v", *got.OriginalFetchInterval)
+	}
+}
+
+func TestSetSourceBackoff(t *testing.T) {
+	// WHAT: SetSourceBackoff doubles fetch_interval and saves original.
+	// WHY: Exponential backoff reduces pressure on failing servers.
+	db := openTestDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+
+	s.InsertSource(ctx, &Source{
+		ID: "src-bo", Name: "Backoff", URL: "https://bo.com", Enabled: true,
+		FetchInterval: 3600000,
+	})
+
+	if err := s.SetSourceBackoff(ctx, "src-bo", 86400000); err != nil {
+		t.Fatalf("backoff: %v", err)
+	}
+
+	got, _ := s.GetSource(ctx, "src-bo")
+	if got.FetchInterval != 7200000 {
+		t.Errorf("fetch_interval: got %d, want 7200000", got.FetchInterval)
+	}
+	if got.OriginalFetchInterval == nil || *got.OriginalFetchInterval != 3600000 {
+		t.Error("original_fetch_interval should be 3600000")
+	}
+
+	// Second backoff should double again but keep same original.
+	s.SetSourceBackoff(ctx, "src-bo", 86400000)
+	got2, _ := s.GetSource(ctx, "src-bo")
+	if got2.FetchInterval != 14400000 {
+		t.Errorf("fetch_interval: got %d, want 14400000 (doubled again)", got2.FetchInterval)
+	}
+	if got2.OriginalFetchInterval == nil || *got2.OriginalFetchInterval != 3600000 {
+		t.Error("original_fetch_interval should still be 3600000")
+	}
+}
+
+func TestUpdateSourceURL(t *testing.T) {
+	// WHAT: UpdateSourceURL changes URL and resets error state.
+	// WHY: Redirect repair must update the URL cleanly.
+	db := openTestDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+
+	s.InsertSource(ctx, &Source{
+		ID: "src-url", Name: "URL", URL: "https://old.com", Enabled: true,
+		LastStatus: "error", FailCount: 5, LastError: "http 301",
+	})
+
+	if err := s.UpdateSourceURL(ctx, "src-url", "https://new.com"); err != nil {
+		t.Fatalf("update url: %v", err)
+	}
+
+	got, _ := s.GetSource(ctx, "src-url")
+	if got.URL != "https://new.com" {
+		t.Errorf("url: got %q, want https://new.com", got.URL)
+	}
+	if got.FailCount != 0 {
+		t.Errorf("fail_count: got %d, want 0", got.FailCount)
+	}
+	if got.LastStatus != "pending" {
+		t.Errorf("status: got %q, want pending", got.LastStatus)
+	}
+}
+
+func TestSetSourceStatus(t *testing.T) {
+	// WHAT: SetSourceStatus updates last_status.
+	// WHY: Repairer needs to mark sources as broken.
+	db := openTestDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+
+	s.InsertSource(ctx, &Source{ID: "src-st", Name: "ST", URL: "https://st.com", Enabled: true})
+
+	if err := s.SetSourceStatus(ctx, "src-st", "broken"); err != nil {
+		t.Fatalf("set status: %v", err)
+	}
+
+	got, _ := s.GetSource(ctx, "src-st")
+	if got.LastStatus != "broken" {
+		t.Errorf("status: got %q, want broken", got.LastStatus)
+	}
+}

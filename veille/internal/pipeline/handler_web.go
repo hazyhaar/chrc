@@ -103,7 +103,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 			ContentHash: extractResult.Hash,
 			ExtractedAt: time.Now().UTC(),
 		}
-		if _, err := p.buffer.Write(ctx, meta, cleanText); err != nil {
+		bufferText := p.htmlToMarkdown(extractResult.HTML, src.URL, cleanText)
+		if _, err := p.buffer.Write(ctx, meta, bufferText); err != nil {
 			log.Warn("web: buffer write failed", "error", err)
 		}
 	}

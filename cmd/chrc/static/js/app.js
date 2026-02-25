@@ -6,7 +6,7 @@ function typeBadge(type) {
 }
 
 function statusBadge(status) {
-    var map = { ok: 'ok', error: 'error', pending: 'pending', unchanged: 'unchanged', no_change: 'unchanged' };
+    var map = { ok: 'ok', error: 'error', broken: 'broken', pending: 'pending', unchanged: 'unchanged', no_change: 'unchanged', extract_error: 'error' };
     var cls = 'badge badge-' + (map[status] || 'pending');
     return Dom.el('span', { class: cls }, [status || 'pending']);
 }

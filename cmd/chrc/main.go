@@ -588,6 +588,59 @@ func main() {
 			})
 		})
 
+		// Admin: source health (auto-repair).
+		r.Route("/api/admin/source-health", func(r chi.Router) {
+			r.Use(requireAdmin)
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				health, err := svc.ListSourceHealth(r.Context())
+				if err != nil {
+					writeError(w, 500, err)
+					return
+				}
+				if health == nil {
+					health = []veille.SourceHealth{}
+				}
+				writeJSON(w, 200, health)
+			})
+			r.Post("/sweep", func(w http.ResponseWriter, r *http.Request) {
+				results := svc.SweepNow(r.Context())
+				if results == nil {
+					results = []veille.SweepResult{}
+				}
+				writeJSON(w, 200, results)
+			})
+			r.Post("/probe", func(w http.ResponseWriter, r *http.Request) {
+				var req struct {
+					URL string `json:"url"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+					writeError(w, 400, err)
+					return
+				}
+				if req.URL == "" {
+					writeError(w, 400, fmt.Errorf("url requis"))
+					return
+				}
+				code, err := svc.ProbeURL(r.Context(), req.URL)
+				resp := map[string]any{"url": req.URL, "status_code": code}
+				if err != nil {
+					resp["error"] = err.Error()
+				}
+				writeJSON(w, 200, resp)
+			})
+		})
+
+		// User: reset source (per-dossier).
+		r.Post("/api/dossiers/{dossierID}/sources/{id}/reset", func(w http.ResponseWriter, r *http.Request) {
+			dossierID := chi.URLParam(r, "dossierID")
+			sourceID := chi.URLParam(r, "id")
+			if err := svc.ResetSource(r.Context(), dossierID, sourceID); err != nil {
+				writeError(w, 500, err)
+				return
+			}
+			writeJSON(w, 200, map[string]string{"status": "reset"})
+		})
+
 		// User: browse source registry (read-only).
 		r.Get("/api/source-registry", func(w http.ResponseWriter, r *http.Request) {
 			entries, err := listSourceRegistry(r.Context(), catalogDB)

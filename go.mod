@@ -3,15 +3,16 @@ module github.com/hazyhaar/chrc
 go 1.24.7
 
 require (
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/hazyhaar/horosvec v0.0.0-20260224091408-6993d04099a2
 	github.com/hazyhaar/pkg v0.0.0-20260224091357-ba355365ef24
-	github.com/hazyhaar/usertenant v0.0.0-20260224091409-7a3cfce1292d
+	github.com/hazyhaar/usertenant v0.0.0-20260225143450-128bc5ad5dbe
 	github.com/modelcontextprotocol/go-sdk v1.3.1
-	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.46.0
+	golang.org/x/crypto v0.44.0
+	golang.org/x/net v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.46.1
 )
@@ -22,6 +23,7 @@ replace github.com/hazyhaar/pkg => ../hazyhaar_pkg
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
@@ -40,7 +42,7 @@ require (
 	github.com/ysmood/leakless v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

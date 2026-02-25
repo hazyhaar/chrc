@@ -7,7 +7,10 @@
 // for downstream RAG consumption.
 package veille
 
-import "github.com/hazyhaar/chrc/veille/internal/store"
+import (
+	"github.com/hazyhaar/chrc/veille/internal/repair"
+	"github.com/hazyhaar/chrc/veille/internal/store"
+)
 
 // Re-export store types for public API.
 type (
@@ -19,4 +22,5 @@ type (
 	TrackedQuestion = store.TrackedQuestion
 	SearchEngine    = store.SearchEngine
 	SearchLogEntry  = store.SearchLogEntry
+	SweepResult     = repair.SweepResult
 )

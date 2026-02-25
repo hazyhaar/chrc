@@ -120,12 +120,31 @@ const Migration001UniqueURL = `
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_url_unique ON sources(url);
 `
 
+// Migration002OriginalFetchInterval adds original_fetch_interval for backoff tracking.
+// NULL = no backoff active, non-NULL = original interval to restore after recovery.
+const Migration002OriginalFetchInterval = `
+ALTER TABLE sources ADD COLUMN original_fetch_interval INTEGER;
+`
+
 // ApplySchema creates all tables and indexes on the given database.
 func ApplySchema(db *sql.DB) error {
 	if _, err := db.Exec(Schema); err != nil {
 		return err
 	}
 	// Apply migrations.
-	_, err := db.Exec(Migration001UniqueURL)
-	return err
+	if _, err := db.Exec(Migration001UniqueURL); err != nil {
+		return err
+	}
+	applyColumnMigration(db, "sources", "original_fetch_interval", Migration002OriginalFetchInterval)
+	return nil
+}
+
+// applyColumnMigration adds a column if it doesn't exist (idempotent).
+func applyColumnMigration(db *sql.DB, table, column, ddl string) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, column).Scan(&count)
+	if err != nil || count > 0 {
+		return
+	}
+	db.Exec(ddl)
 }

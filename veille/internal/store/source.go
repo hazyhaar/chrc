@@ -33,11 +33,11 @@ func (s *Store) InsertSource(ctx context.Context, src *Source) error {
 	_, err := s.DB.ExecContext(ctx,
 		`INSERT INTO sources (id, name, url, source_type, fetch_interval, enabled,
 		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
-		created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		original_fetch_interval, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		src.ID, src.Name, src.URL, src.SourceType, src.FetchInterval, src.Enabled,
 		src.ConfigJSON, src.LastFetchedAt, src.LastHash, src.LastStatus, src.LastError,
-		src.FailCount, src.CreatedAt, src.UpdatedAt,
+		src.FailCount, src.OriginalFetchInterval, src.CreatedAt, src.UpdatedAt,
 	)
 	return err
 }
@@ -47,7 +47,7 @@ func (s *Store) GetSource(ctx context.Context, id string) (*Source, error) {
 	row := s.DB.QueryRowContext(ctx,
 		`SELECT id, name, url, source_type, fetch_interval, enabled,
 		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
-		created_at, updated_at
+		original_fetch_interval, created_at, updated_at
 		FROM sources WHERE id = ?`, id)
 	return scanSource(row)
 }
@@ -57,7 +57,7 @@ func (s *Store) ListSources(ctx context.Context) ([]*Source, error) {
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT id, name, url, source_type, fetch_interval, enabled,
 		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
-		created_at, updated_at
+		original_fetch_interval, created_at, updated_at
 		FROM sources ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (s *Store) GetSourceByURL(ctx context.Context, url string) (*Source, error)
 	row := s.DB.QueryRowContext(ctx,
 		`SELECT id, name, url, source_type, fetch_interval, enabled,
 		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
-		created_at, updated_at
+		original_fetch_interval, created_at, updated_at
 		FROM sources WHERE url = ? LIMIT 1`, url)
 	return scanSource(row)
 }
@@ -119,7 +119,7 @@ func (s *Store) DueSources(ctx context.Context, maxFailCount int) ([]*Source, er
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT id, name, url, source_type, fetch_interval, enabled,
 		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
-		created_at, updated_at
+		original_fetch_interval, created_at, updated_at
 		FROM sources
 		WHERE enabled = 1
 		  AND fail_count < ?
@@ -171,13 +171,94 @@ func (s *Store) RecordFetchError(ctx context.Context, id, errMsg string) error {
 	return err
 }
 
+// ListBrokenSources returns sources in error or broken state.
+func (s *Store) ListBrokenSources(ctx context.Context) ([]*Source, error) {
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT id, name, url, source_type, fetch_interval, enabled,
+		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
+		original_fetch_interval, created_at, updated_at
+		FROM sources
+		WHERE last_status IN ('error','extract_error','broken') OR fail_count > 0
+		ORDER BY fail_count DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sources []*Source
+	for rows.Next() {
+		src, err := scanSourceRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, src)
+	}
+	return sources, rows.Err()
+}
+
+// ResetSource resets a source to pending state for the scheduler.
+func (s *Store) ResetSource(ctx context.Context, id string) error {
+	now := time.Now().UnixMilli()
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE sources SET fail_count=0, last_status='pending', last_error='',
+		original_fetch_interval=COALESCE(original_fetch_interval, NULL),
+		fetch_interval=COALESCE(original_fetch_interval, fetch_interval),
+		updated_at=?
+		WHERE id=?`, now, id)
+	if err != nil {
+		return err
+	}
+	// Clear original_fetch_interval after restoring.
+	_, err = s.DB.ExecContext(ctx,
+		`UPDATE sources SET original_fetch_interval=NULL, updated_at=? WHERE id=?`, now, id)
+	return err
+}
+
+// SetSourceBackoff doubles the fetch interval up to maxMs, saving the original.
+func (s *Store) SetSourceBackoff(ctx context.Context, id string, maxMs int64) error {
+	now := time.Now().UnixMilli()
+	// Save original interval if not already saved.
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE sources SET
+		original_fetch_interval = CASE WHEN original_fetch_interval IS NULL THEN fetch_interval ELSE original_fetch_interval END,
+		fetch_interval = MIN(fetch_interval * 2, ?),
+		updated_at = ?
+		WHERE id = ?`, maxMs, now, id)
+	return err
+}
+
+// UpdateSourceURL updates a source's URL and resets its error state.
+func (s *Store) UpdateSourceURL(ctx context.Context, id, newURL string) error {
+	now := time.Now().UnixMilli()
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE sources SET url=?, fail_count=0, last_status='pending', last_error='', updated_at=?
+		WHERE id=?`, newURL, now, id)
+	return err
+}
+
+// SetSourceStatus sets the last_status of a source (e.g. "broken").
+func (s *Store) SetSourceStatus(ctx context.Context, id, status string) error {
+	now := time.Now().UnixMilli()
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE sources SET last_status=?, updated_at=? WHERE id=?`, status, now, id)
+	return err
+}
+
+// UpdateSourceConfig updates the config_json field of a source.
+func (s *Store) UpdateSourceConfig(ctx context.Context, id, configJSON string) error {
+	now := time.Now().UnixMilli()
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE sources SET config_json=?, updated_at=? WHERE id=?`, configJSON, now, id)
+	return err
+}
+
 func scanSource(row *sql.Row) (*Source, error) {
 	var src Source
 	var enabled int
 	err := row.Scan(
 		&src.ID, &src.Name, &src.URL, &src.SourceType, &src.FetchInterval, &enabled,
 		&src.ConfigJSON, &src.LastFetchedAt, &src.LastHash, &src.LastStatus, &src.LastError,
-		&src.FailCount, &src.CreatedAt, &src.UpdatedAt,
+		&src.FailCount, &src.OriginalFetchInterval, &src.CreatedAt, &src.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -195,7 +276,7 @@ func scanSourceRows(rows *sql.Rows) (*Source, error) {
 	err := rows.Scan(
 		&src.ID, &src.Name, &src.URL, &src.SourceType, &src.FetchInterval, &enabled,
 		&src.ConfigJSON, &src.LastFetchedAt, &src.LastHash, &src.LastStatus, &src.LastError,
-		&src.FailCount, &src.CreatedAt, &src.UpdatedAt,
+		&src.FailCount, &src.OriginalFetchInterval, &src.CreatedAt, &src.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan source: %w", err)

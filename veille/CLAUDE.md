@@ -36,6 +36,7 @@ Multi-tenant via **usertenant** : chaque dossierID = un SQLite shard isolé. Le 
 | `internal/apifetch/` | Fetch JSON API, dot-notation walker, field mapping, ${ENV_VAR} expansion |
 | `internal/search/` | Search engine abstraction — strategy dispatch (api, generic stub) |
 | `internal/question/` | Question runner — execute tracked questions against search engines |
+| `internal/repair/` | Auto-repair : classifie erreurs, applique actions (backoff, UA rotation, mark broken), sweep périodique |
 | `catalog/` | Seed catalog — sources + search engines pré-définis |
 
 ## Packages partagés (top-level chrc/)
@@ -174,9 +175,47 @@ store := store.NewStore(db) // db vient de pool.Resolve()
 
 Le schema est appliqué via `veille.ApplySchema(db)` lors du premier Resolve.
 
+## Auto-repair (internal/repair/)
+
+Niveau 1 — natif, sans LLM. Intégré dans `processJob` (après chaque erreur pipeline).
+
+**Classify** : `(sourceType, statusCode, errMsg)` → `(ErrorClass, Action)`
+
+| Erreur | Action |
+|--------|--------|
+| 301/302/307/308 | `follow_redirect` — update URL |
+| 5xx, timeout, DNS | `backoff` — doubler fetch_interval (cap 24h) |
+| 429 | `increase_rate` — doubler rate_limit_ms |
+| 404/410 | `mark_broken` |
+| 403 (web/rss) | `rotate_ua` — essayer un autre User-Agent |
+| 403 (api) | `mark_broken` (clé API révoquée) |
+| parse error | `mark_broken` (nécessite LLM) |
+
+**Repairer** : applique l'action recommandée en DB (backoff, UA rotation, mark broken).
+**Sweeper** : probe périodique (HEAD, 10s timeout) des sources broken/error → reset si 2xx.
+
+Statut `broken` = distinct de `error` : auto-repair a échoué, nécessite intervention admin.
+Champ `original_fetch_interval` : sauvegardé avant backoff, restauré après reset.
+
+### REST API admin
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/admin/source-health` | GET | Liste toutes les sources en erreur cross-dossier |
+| `/api/admin/source-health/sweep` | POST | Déclencher un sweep manuel |
+| `/api/admin/source-health/probe` | POST | Probe une URL `{"url":"..."}` |
+| `/api/dossiers/{id}/sources/{id}/reset` | POST | Reset fail_count d'une source |
+
+### SPA
+
+- Bouton "Reset" visible si `fail_count > 0` ou `last_status in (broken, error)`
+- Bouton "Probe" visible si `fail_count > 0`
+- Badge `broken` (rouge foncé) distinct de `error` (rouge)
+
 ## TODO
 
 - [ ] Phase 3 : Binary unifié `cmd/chrc/main.go` avec usertenant + MCP + HTTP
 - [ ] Phase 3 : domwatch search engine adapter — wire generic strategy (Rod/CSS) to domwatch
 - [ ] Phase 4 : Interface utilisateur HTML/templ
 - [ ] Phase 5 : domwatch dispatch, domregistry pull, horosembed + vecbridge
+- [ ] Niveau 2 repair : LLM via connectivity (horostracker pool gratuit)

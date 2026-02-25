@@ -28,6 +28,9 @@
 .btn-danger { color: var(--danger); }
 .btn-danger:hover { background: rgba(239,68,68,0.1); border-color: var(--danger); }
 
+.btn-warning { color: #fbbf24; border-color: #fbbf24; }
+.btn-warning:hover { background: rgba(251,191,36,0.1); }
+
 .btn-ghost { border-color: transparent; background: transparent; }
 .btn-ghost:hover { background: var(--bg-hover); }
 
@@ -153,6 +156,7 @@
 
 .badge-ok { background: rgba(34,197,94,0.15); color: var(--status-ok); }
 .badge-error { background: rgba(239,68,68,0.15); color: var(--status-error); }
+.badge-broken { background: rgba(185,28,28,0.2); color: #fca5a5; font-weight: 600; }
 .badge-pending { background: rgba(148,163,184,0.15); color: var(--status-pending); }
 .badge-unchanged { background: rgba(59,130,246,0.15); color: var(--status-unchanged); }
 

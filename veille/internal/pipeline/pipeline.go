@@ -9,6 +9,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
+
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 
 	"github.com/hazyhaar/chrc/veille/internal/buffer"
 	"github.com/hazyhaar/chrc/veille/internal/fetch"
@@ -25,12 +31,13 @@ type Job struct {
 
 // Pipeline processes fetch jobs, dispatching to type-specific handlers.
 type Pipeline struct {
-	fetcher    *fetch.Fetcher
-	logger     *slog.Logger
-	newID      func() string
-	buffer     *buffer.Writer
-	handlers   map[string]SourceHandler
-	currentJob *Job // set during HandleJob for handlers to access
+	fetcher     *fetch.Fetcher
+	logger      *slog.Logger
+	newID       func() string
+	buffer      *buffer.Writer
+	handlers    map[string]SourceHandler
+	currentJob  *Job // set during HandleJob for handlers to access
+	mdConverter *converter.Converter
 }
 
 // New creates a Pipeline.
@@ -39,9 +46,16 @@ func New(fetcher *fetch.Fetcher, logger *slog.Logger) *Pipeline {
 		logger = slog.Default()
 	}
 	p := &Pipeline{
-		fetcher:  fetcher,
-		logger:   logger,
-		newID:    idgen.New,
+		fetcher: fetcher,
+		logger:  logger,
+		newID:   idgen.New,
+		mdConverter: converter.NewConverter(
+			converter.WithPlugins(
+				base.NewBasePlugin(),
+				commonmark.NewCommonmarkPlugin(),
+				table.NewTablePlugin(),
+			),
+		),
 		handlers: make(map[string]SourceHandler),
 	}
 	// Register built-in handlers.
@@ -104,4 +118,17 @@ func (p *Pipeline) HandleJob(ctx context.Context, s *store.Store, job *Job) erro
 	}
 
 	return handler.Handle(ctx, s, src, p)
+}
+
+// htmlToMarkdown converts HTML to structured markdown.
+// If conversion fails or produces empty output, returns the fallback plain text.
+func (p *Pipeline) htmlToMarkdown(html string, sourceURL string, fallback string) string {
+	if html == "" {
+		return fallback
+	}
+	result, err := p.mdConverter.ConvertString(html, converter.WithDomain(sourceURL))
+	if err != nil || strings.TrimSpace(result) == "" {
+		return fallback
+	}
+	return strings.TrimSpace(result)
 }

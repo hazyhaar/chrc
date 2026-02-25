@@ -106,12 +106,16 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 		}
 
 		// If follow_links and we have a link, fetch and extract the full page.
+		var extractedHTML string
+		var followedURL string
 		if cfg.FollowLinks && entry.Link != "" {
 			pageResult, fetchErr := p.fetcher.Fetch(ctx, entry.Link, "", "", "")
 			if fetchErr == nil && pageResult.Changed {
 				extractResult, extractErr := extract.Extract(pageResult.Body, extract.Options{Mode: "auto"})
 				if extractErr == nil && extractResult.Text != "" {
 					text = extract.CleanText(extractResult.Text)
+					extractedHTML = extractResult.HTML
+					followedURL = entry.Link
 				}
 			}
 		}
@@ -145,8 +149,19 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 			continue
 		}
 
-		// Write to buffer.
+		// Write to buffer (markdown if HTML available, plain text fallback).
 		if p.buffer != nil && p.currentJob != nil {
+			var bufferText string
+			if extractedHTML != "" {
+				bufferText = p.htmlToMarkdown(extractedHTML, followedURL, text)
+			} else {
+				// entry.Content/Description is often HTML — try converting.
+				rawContent := entry.Content
+				if rawContent == "" {
+					rawContent = entry.Description
+				}
+				bufferText = p.htmlToMarkdown(rawContent, url, text)
+			}
 			meta := buffer.Metadata{
 				ID:          extractionID,
 				SourceID:    src.ID,
@@ -157,7 +172,7 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 				ContentHash: contentHash,
 				ExtractedAt: time.Now().UTC(),
 			}
-			if _, err := p.buffer.Write(ctx, meta, text); err != nil {
+			if _, err := p.buffer.Write(ctx, meta, bufferText); err != nil {
 				log.Warn("rss: buffer write failed", "error", err)
 			}
 		}

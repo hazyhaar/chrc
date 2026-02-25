@@ -50,7 +50,7 @@ var SourceDetailView = (function () {
                     Dom.el('a', { href: src.url, target: '_blank', style: 'font-family: var(--font-mono); font-size: var(--font-size-xs);' }, [truncate(src.url, 60)])
                 ])
             ]));
-            header.appendChild(Dom.el('div', { class: 'page-actions' }, [
+            var actions = [
                 Dom.el('button', { class: 'btn btn-primary', onClick: function () {
                     Api.post('/api/dossiers/' + spaceId + '/sources/' + sourceId + '/fetch').then(function () {
                         Toast.success('Fetch lanc\u00e9');
@@ -59,7 +59,24 @@ var SourceDetailView = (function () {
                         else loadHistory(spaceId, sourceId);
                     });
                 }}, ['Fetch Now'])
-            ]));
+            ];
+            if (src.fail_count > 0 || src.last_status === 'broken' || src.last_status === 'error') {
+                actions.push(Dom.el('button', { class: 'btn btn-warning', style: 'margin-left: 8px;', onClick: function () {
+                    Api.post('/api/dossiers/' + spaceId + '/sources/' + sourceId + '/reset').then(function () {
+                        Toast.success('Source r\u00e9initialis\u00e9e');
+                        loadSource(spaceId, sourceId);
+                    });
+                }}, ['Reset']));
+            }
+            if (src.fail_count > 0) {
+                actions.push(Dom.el('button', { class: 'btn', style: 'margin-left: 8px;', onClick: function () {
+                    Api.post('/api/admin/source-health/probe', { url: src.url }).then(function (res) {
+                        if (res.error) Toast.error('Probe: ' + res.status_code + ' - ' + res.error);
+                        else Toast.success('Probe: HTTP ' + res.status_code);
+                    });
+                }}, ['Probe']));
+            }
+            header.appendChild(Dom.el('div', { class: 'page-actions' }, actions));
         });
     }
 

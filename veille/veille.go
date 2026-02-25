@@ -15,6 +15,7 @@ import (
 	"github.com/hazyhaar/chrc/veille/internal/fetch"
 	"github.com/hazyhaar/chrc/veille/internal/pipeline"
 	"github.com/hazyhaar/chrc/veille/internal/question"
+	"github.com/hazyhaar/chrc/veille/internal/repair"
 	"github.com/hazyhaar/chrc/veille/internal/scheduler"
 	"github.com/hazyhaar/chrc/veille/internal/search"
 	"github.com/hazyhaar/chrc/veille/internal/store"
@@ -35,6 +36,8 @@ type Service struct {
 	fetcher      *fetch.Fetcher
 	pipeline     *pipeline.Pipeline
 	scheduler    *scheduler.Scheduler
+	repairer     *repair.Repairer
+	sweeper      *repair.Sweeper
 	logger       *slog.Logger
 	config       *Config
 	newID        func() string
@@ -76,6 +79,7 @@ func New(pool PoolResolver, cfg *Config, logger *slog.Logger, opts ...ServiceOpt
 		pool:         pool,
 		fetcher:      f,
 		pipeline:     p,
+		repairer:     repair.NewRepairer(logger),
 		logger:       logger,
 		config:       cfg,
 		newID:        idgen.New,
@@ -123,6 +127,11 @@ func New(pool PoolResolver, cfg *Config, logger *slog.Logger, opts ...ServiceOpt
 	}
 	svc.scheduler = scheduler.New(resolve, list, sink, cfg.Scheduler, logger)
 
+	// Create sweeper for periodic probe of broken sources.
+	svc.sweeper = repair.NewSweeper(pool, func(ctx context.Context) ([]string, error) {
+		return svc.listActiveShards(ctx)
+	}, logger, cfg.SweepInterval)
+
 	return svc, nil
 }
 
@@ -165,9 +174,12 @@ func (svc *Service) lookupSearchEngine(ctx context.Context, id string) (*search.
 	return nil, fmt.Errorf("engine lookup requires shard context (engine %q)", id)
 }
 
-// Start launches the background scheduler. Non-blocking.
+// Start launches the background scheduler and sweeper. Non-blocking.
 func (svc *Service) Start(ctx context.Context) {
 	go svc.scheduler.Run(ctx)
+	if svc.sweeper != nil {
+		go svc.sweeper.Run(ctx)
+	}
 	svc.logger.Info("veille: started")
 }
 
@@ -648,6 +660,64 @@ func lookupGlobalEngine(ctx context.Context, catalogDB *sql.DB, id string) (*sea
 	return e, nil
 }
 
+// --- Admin: source health ---
+
+// SourceHealth is a broken source with its dossier context.
+type SourceHealth struct {
+	DossierID string  `json:"dossier_id"`
+	Source    *Source `json:"source"`
+}
+
+// ListSourceHealth returns all broken/error sources across all dossiers.
+func (svc *Service) ListSourceHealth(ctx context.Context) ([]SourceHealth, error) {
+	dossierIDs, err := svc.listActiveShards(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []SourceHealth
+	for _, dossierID := range dossierIDs {
+		st, err := svc.resolveStore(ctx, dossierID)
+		if err != nil {
+			continue
+		}
+		broken, err := st.ListBrokenSources(ctx)
+		if err != nil {
+			continue
+		}
+		for _, src := range broken {
+			results = append(results, SourceHealth{DossierID: dossierID, Source: src})
+		}
+	}
+	return results, nil
+}
+
+// SweepNow triggers a manual sweep of all broken sources.
+func (svc *Service) SweepNow(ctx context.Context) []repair.SweepResult {
+	if svc.sweeper == nil {
+		return nil
+	}
+	return svc.sweeper.SweepOnce(ctx)
+}
+
+// ProbeURL probes a URL and returns the HTTP status code.
+func (svc *Service) ProbeURL(ctx context.Context, url string) (int, error) {
+	return repair.ProbeURL(ctx, url, 0)
+}
+
+// ResetSource resets a source's error state so the scheduler picks it up again.
+func (svc *Service) ResetSource(ctx context.Context, dossierID, sourceID string) error {
+	st, err := svc.resolveStore(ctx, dossierID)
+	if err != nil {
+		return err
+	}
+	if err := st.ResetSource(ctx, sourceID); err != nil {
+		return err
+	}
+	svc.auditLog(dossierID, "reset_source", fmt.Sprintf(`{"dossier_id":%q,"source_id":%q}`, dossierID, sourceID))
+	return nil
+}
+
 // --- Internal ---
 
 func (svc *Service) processJob(ctx context.Context, job *scheduler.Job) error {
@@ -655,11 +725,24 @@ func (svc *Service) processJob(ctx context.Context, job *scheduler.Job) error {
 	if err != nil {
 		return err
 	}
-	return svc.pipeline.HandleJob(ctx, st, &pipeline.Job{
+	pipeErr := svc.pipeline.HandleJob(ctx, st, &pipeline.Job{
 		DossierID: job.DossierID,
 		SourceID:  job.SourceID,
 		URL:       job.URL,
 	})
+	if pipeErr != nil && svc.repairer != nil {
+		// Attempt auto-repair after fetch failure.
+		src, getErr := st.GetSource(ctx, job.SourceID)
+		if getErr == nil && src != nil {
+			statusCode := repair.ExtractStatusCode(pipeErr.Error())
+			action := svc.repairer.TryRepair(ctx, st, src, statusCode, pipeErr)
+			if action != repair.ActionNone {
+				svc.logger.Info("auto-repair applied",
+					"source_id", job.SourceID, "action", action)
+			}
+		}
+	}
+	return pipeErr
 }
 
 func (svc *Service) listActiveShards(ctx context.Context) ([]string, error) {
