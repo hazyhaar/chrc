@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Intercepts and blocks specified resource types (images, fonts, media, stylesheets) on Rod pages.
 package browser
 
 import (

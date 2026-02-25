@@ -2,7 +2,6 @@ package veille
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
@@ -18,14 +17,14 @@ func TestService_AddSource(t *testing.T) {
 	ctx := context.Background()
 
 	src := &Source{Name: "Test Source", URL: "https://test.com", Enabled: true}
-	if err := svc.AddSource(ctx, "u1", "s1", src); err != nil {
+	if err := svc.AddSource(ctx, "d1", src); err != nil {
 		t.Fatalf("add source: %v", err)
 	}
 	if src.ID == "" {
 		t.Error("ID should be auto-generated")
 	}
 
-	sources, err := svc.ListSources(ctx, "u1", "s1")
+	sources, err := svc.ListSources(ctx, "d1")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -43,12 +42,9 @@ func TestService_Search(t *testing.T) {
 
 	st := store.NewStore(db)
 	st.InsertSource(ctx, &store.Source{ID: "src-1", Name: "S", URL: "https://s.com", Enabled: true})
-	st.InsertExtraction(ctx, &store.Extraction{ID: "ext-1", SourceID: "src-1", ContentHash: "h", ExtractedText: "text", URL: "https://s.com", ExtractedAt: now})
-	st.InsertChunks(ctx, []*store.Chunk{
-		{ID: "ch-1", ExtractionID: "ext-1", SourceID: "src-1", ChunkIndex: 0, Text: "distributed systems design patterns", TokenCount: 4, CreatedAt: now},
-	})
+	st.InsertExtraction(ctx, &store.Extraction{ID: "ext-1", SourceID: "src-1", ContentHash: "h", ExtractedText: "distributed systems design patterns", URL: "https://s.com", ExtractedAt: now})
 
-	results, err := svc.Search(ctx, "u1", "s1", "distributed systems", 10)
+	results, err := svc.Search(ctx, "d1", "distributed systems", 10)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -63,55 +59,15 @@ func TestService_Stats(t *testing.T) {
 	svc, _ := setupTestService(t)
 	ctx := context.Background()
 
-	svc.AddSource(ctx, "u1", "s1", &Source{Name: "S1", URL: "https://s1.com", Enabled: true})
-	svc.AddSource(ctx, "u1", "s1", &Source{Name: "S2", URL: "https://s2.com", Enabled: true})
+	svc.AddSource(ctx, "d1", &Source{Name: "S1", URL: "https://s1.com", Enabled: true})
+	svc.AddSource(ctx, "d1", &Source{Name: "S2", URL: "https://s2.com", Enabled: true})
 
-	stats, err := svc.Stats(ctx, "u1", "s1")
+	stats, err := svc.Stats(ctx, "d1")
 	if err != nil {
 		t.Fatalf("stats: %v", err)
 	}
 	if stats.Sources != 2 {
 		t.Errorf("sources: got %d, want 2", stats.Sources)
-	}
-}
-
-func TestService_CreateSpace(t *testing.T) {
-	// WHAT: Create a space via service layer.
-	// WHY: Space creation initializes the shard schema.
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	db.Exec("PRAGMA journal_mode=WAL")
-	db.Exec("PRAGMA foreign_keys=ON")
-	// Pre-apply schema since the test pool always returns same DB.
-	store.ApplySchema(db)
-	t.Cleanup(func() { db.Close() })
-
-	pool := &testPool{db: db}
-	spaces := &testSpaces{}
-	svc, _ := New(pool, spaces, nil, nil)
-
-	space, err := svc.CreateSpace(context.Background(), "user-1", "My Watch")
-	if err != nil {
-		t.Fatalf("create space: %v", err)
-	}
-	if space.UserID != "user-1" {
-		t.Errorf("user_id: got %q", space.UserID)
-	}
-	if space.Name != "My Watch" {
-		t.Errorf("name: got %q", space.Name)
-	}
-	if space.SpaceID == "" {
-		t.Error("space_id should be generated")
-	}
-
-	listed, err := svc.ListSpaces(context.Background(), "user-1")
-	if err != nil {
-		t.Fatalf("list spaces: %v", err)
-	}
-	if len(listed) != 1 {
-		t.Fatalf("count: got %d, want 1", len(listed))
 	}
 }
 
@@ -123,20 +79,20 @@ func TestService_FetchNow(t *testing.T) {
 	svc, _ := setupTestService(t)
 	ctx := context.Background()
 
-	svc.AddSource(ctx, "u1", "s1", &Source{
+	svc.AddSource(ctx, "d1", &Source{
 		Name:    "Unreachable",
-		URL:     "http://127.0.0.1:1", // unreachable
+		URL:     "http://203.0.113.1:1", // TEST-NET-3 (RFC 5737), unreachable but non-private
 		Enabled: true,
 	})
-	sources, _ := svc.ListSources(ctx, "u1", "s1")
+	sources, _ := svc.ListSources(ctx, "d1")
 
-	err := svc.FetchNow(ctx, "u1", "s1", sources[0].ID)
+	err := svc.FetchNow(ctx, "d1", sources[0].ID)
 	if err == nil {
 		t.Fatal("expected error for unreachable URL")
 	}
 
 	// Source should have fail_count incremented.
-	src, _ := svc.ListSources(ctx, "u1", "s1")
+	src, _ := svc.ListSources(ctx, "d1")
 	if src[0].FailCount != 1 {
 		t.Errorf("fail_count: got %d, want 1", src[0].FailCount)
 	}

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Store wrapper around *sql.DB providing the data access layer for veille shards.
 // Package store provides the data access layer for veille shards.
 //
 // Unlike domkeeper which opens its own database, veille receives a *sql.DB

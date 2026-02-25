@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Configuration struct and defaults for the docpipe document extraction pipeline.
 package docpipe
 
 import "log/slog"

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Re-exports internal store types (Profile, Correction, Report, InstanceReputation, LeaderboardEntry) for external callers.
 package domregistry
 
 import "github.com/hazyhaar/chrc/domregistry/internal/store"

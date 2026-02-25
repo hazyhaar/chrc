@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Source CRUD, DueSources scheduling query, and fetch status recording.
 package store
 
 import (
@@ -91,6 +92,23 @@ func (s *Store) UpdateSource(ctx context.Context, src *Source) error {
 func (s *Store) DeleteSource(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM sources WHERE id = ?`, id)
 	return err
+}
+
+// GetSourceByURL returns an enabled source matching the given URL, or nil.
+func (s *Store) GetSourceByURL(ctx context.Context, url string) (*Source, error) {
+	row := s.DB.QueryRowContext(ctx,
+		`SELECT id, name, url, source_type, fetch_interval, enabled,
+		config_json, last_fetched_at, last_hash, last_status, last_error, fail_count,
+		created_at, updated_at
+		FROM sources WHERE url = ? LIMIT 1`, url)
+	return scanSource(row)
+}
+
+// CountSources returns the total number of sources in the shard.
+func (s *Store) CountSources(ctx context.Context) (int, error) {
+	var count int
+	err := s.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM sources`).Scan(&count)
+	return count, err
 }
 
 // DueSources returns enabled sources whose next fetch time has passed.

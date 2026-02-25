@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers horosvec MCP tools: search, insert, stats, and similar.
 package vecbridge
 
 import (

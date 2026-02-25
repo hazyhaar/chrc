@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Generates a static HTML leaderboard page showing domain reliability and instance contribution rankings.
 package domregistry
 
 import (

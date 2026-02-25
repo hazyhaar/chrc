@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers horosembed_embed and horosembed_batch MCP tools via kit.RegisterMCPTool.
 package horosembed
 
 import (

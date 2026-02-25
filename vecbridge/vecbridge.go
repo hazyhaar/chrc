@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Wraps horosvec ANN index with SQLite/dbopen management, MCP tools, and connectivity handlers.
 // Package vecbridge wraps horosvec (Vamana+RaBitQ ANN index) with HOROS
 // integration layers: MCP tools, connectivity handlers, and dbopen management.
 //

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Writes mutation events as JSON lines to an io.Writer (defaults to stdout).
 package sink
 
 import (

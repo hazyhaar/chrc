@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Per-page DOM observer combining CDP events and injected JS MutationObserver with dedup and debounce.
 // Package observer implements per-page DOM observation combining CDP events
 // and an injected MutationObserver for complete mutation capture.
 package observer

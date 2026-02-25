@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Configuration struct and defaults for domregistry — DB path, auto-accept, degraded threshold.
 package domregistry
 
 // Config holds the domregistry configuration.

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD for corrections, reports, and instance reputation — includes auto-accept scoring logic.
 package store
 
 import (

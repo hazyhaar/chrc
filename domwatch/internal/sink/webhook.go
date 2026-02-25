@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY POSTs mutation events as JSON to a webhook URL with retry and exponential backoff.
 package sink
 
 import (

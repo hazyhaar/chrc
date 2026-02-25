@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Re-exports internal store types (Rule, Content, Chunk, SearchResult, etc.) for external callers.
 package domkeeper
 
 import "github.com/hazyhaar/chrc/domkeeper/internal/store"

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Wraps a Rod page with stealth navigation, resource blocking, and full DOM serialization.
 package browser
 
 import (

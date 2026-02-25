@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines Profile, Landmark, and Zone types for structural DOM analysis results.
 package mutation
 
 // Profile is a structural analysis of a page's DOM, produced on first visit.

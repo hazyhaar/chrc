@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Configuration structs (chunk, scheduler) and YAML loader for domkeeper.
 package domkeeper
 
 import (

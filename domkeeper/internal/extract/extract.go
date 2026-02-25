@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Multi-mode HTML content extraction (CSS, XPath, density, auto) with boilerplate filtering.
 // Package extract implements the content extraction pipeline.
 //
 // It supports multiple extraction modes:

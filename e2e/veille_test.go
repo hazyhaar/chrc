@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,9 +21,8 @@ func newTestPool() *testPool {
 	return &testPool{dbs: make(map[string]*sql.DB)}
 }
 
-func (tp *testPool) Resolve(_ context.Context, userID, spaceID string) (*sql.DB, error) {
-	key := userID + "/" + spaceID
-	if db, ok := tp.dbs[key]; ok {
+func (tp *testPool) Resolve(_ context.Context, dossierID string) (*sql.DB, error) {
+	if db, ok := tp.dbs[dossierID]; ok {
 		return db, nil
 	}
 	db, err := sql.Open("sqlite", ":memory:")
@@ -32,7 +32,7 @@ func (tp *testPool) Resolve(_ context.Context, userID, spaceID string) (*sql.DB,
 	db.Exec("PRAGMA journal_mode=WAL")
 	db.Exec("PRAGMA foreign_keys=ON")
 	veille.ApplySchema(db)
-	tp.dbs[key] = db
+	tp.dbs[dossierID] = db
 	return db, nil
 }
 
@@ -40,35 +40,6 @@ func (tp *testPool) Close() {
 	for _, db := range tp.dbs {
 		db.Close()
 	}
-}
-
-type testSpaces struct {
-	spaces []veille.SpaceInfo
-}
-
-func (ts *testSpaces) CreateSpace(_ context.Context, userID, spaceID, name string) error {
-	ts.spaces = append(ts.spaces, veille.SpaceInfo{UserID: userID, SpaceID: spaceID, Name: name})
-	return nil
-}
-
-func (ts *testSpaces) DeleteSpace(_ context.Context, userID, spaceID string) error {
-	for i, s := range ts.spaces {
-		if s.UserID == userID && s.SpaceID == spaceID {
-			ts.spaces = append(ts.spaces[:i], ts.spaces[i+1:]...)
-			return nil
-		}
-	}
-	return nil
-}
-
-func (ts *testSpaces) ListSpaces(_ context.Context, userID string) ([]veille.SpaceInfo, error) {
-	var result []veille.SpaceInfo
-	for _, s := range ts.spaces {
-		if s.UserID == userID {
-			result = append(result, s)
-		}
-	}
-	return result, nil
 }
 
 func TestE2E_FullCycle(t *testing.T) {
@@ -90,8 +61,7 @@ func TestE2E_FullCycle(t *testing.T) {
 
 	pool := newTestPool()
 	defer pool.Close()
-	spaces := &testSpaces{}
-	svc, err := veille.New(pool, spaces, nil, nil)
+	svc, err := veille.New(pool, nil, nil, veille.WithURLValidator(func(_ string) error { return nil }))
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
@@ -100,17 +70,17 @@ func TestE2E_FullCycle(t *testing.T) {
 
 	// Add a source.
 	src := &veille.Source{Name: "AI News", URL: srv.URL, Enabled: true}
-	if err := svc.AddSource(ctx, "user-1", "tech-watch", src); err != nil {
+	if err := svc.AddSource(ctx, "d1", src); err != nil {
 		t.Fatalf("add source: %v", err)
 	}
 
 	// Trigger fetch.
-	if err := svc.FetchNow(ctx, "user-1", "tech-watch", src.ID); err != nil {
+	if err := svc.FetchNow(ctx, "d1", src.ID); err != nil {
 		t.Fatalf("fetch now: %v", err)
 	}
 
 	// Verify extraction.
-	exts, err := svc.ListExtractions(ctx, "user-1", "tech-watch", src.ID, 10)
+	exts, err := svc.ListExtractions(ctx, "d1", src.ID, 10)
 	if err != nil {
 		t.Fatalf("list extractions: %v", err)
 	}
@@ -118,17 +88,8 @@ func TestE2E_FullCycle(t *testing.T) {
 		t.Fatal("no extractions after fetch")
 	}
 
-	// Verify chunks.
-	chunks, err := svc.ListChunks(ctx, "user-1", "tech-watch", 100, 0)
-	if err != nil {
-		t.Fatalf("list chunks: %v", err)
-	}
-	if len(chunks) == 0 {
-		t.Fatal("no chunks after fetch")
-	}
-
 	// Search.
-	results, err := svc.Search(ctx, "user-1", "tech-watch", "machine learning", 10)
+	results, err := svc.Search(ctx, "d1", "machine learning", 10)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -137,16 +98,16 @@ func TestE2E_FullCycle(t *testing.T) {
 	}
 
 	// Stats.
-	stats, err := svc.Stats(ctx, "user-1", "tech-watch")
+	stats, err := svc.Stats(ctx, "d1")
 	if err != nil {
 		t.Fatalf("stats: %v", err)
 	}
-	if stats.Sources != 1 || stats.Extractions != 1 || stats.Chunks == 0 {
-		t.Errorf("stats: sources=%d, extractions=%d, chunks=%d", stats.Sources, stats.Extractions, stats.Chunks)
+	if stats.Sources != 1 || stats.Extractions != 1 {
+		t.Errorf("stats: sources=%d, extractions=%d", stats.Sources, stats.Extractions)
 	}
 
 	// Fetch history.
-	history, err := svc.FetchHistory(ctx, "user-1", "tech-watch", src.ID, 10)
+	history, err := svc.FetchHistory(ctx, "d1", src.ID, 10)
 	if err != nil {
 		t.Fatalf("history: %v", err)
 	}
@@ -159,10 +120,10 @@ func TestE2E_FullCycle(t *testing.T) {
 }
 
 func TestE2E_MultiTenantIsolation(t *testing.T) {
-	// WHAT: Different user×space combos are isolated.
+	// WHAT: Different dossiers are isolated.
 	// WHY: Multi-tenancy is the architectural foundation.
-	htmlA := `<html><body><main><p>Content for user A about quantum computing research and applications.</p></main></body></html>`
-	htmlB := `<html><body><main><p>Content for user B about blockchain and distributed ledger technology.</p></main></body></html>`
+	htmlA := `<html><body><main><p>Content for dossier A about quantum computing research and applications.</p></main></body></html>`
+	htmlB := `<html><body><main><p>Content for dossier B about blockchain and distributed ledger technology.</p></main></body></html>`
 
 	srvA := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(htmlA))
@@ -176,80 +137,107 @@ func TestE2E_MultiTenantIsolation(t *testing.T) {
 
 	pool := newTestPool()
 	defer pool.Close()
-	spaces := &testSpaces{}
-	svc, _ := veille.New(pool, spaces, nil, nil)
+	svc, _ := veille.New(pool, nil, nil, veille.WithURLValidator(func(_ string) error { return nil }))
 	ctx := context.Background()
 
-	// User A adds a source.
+	// Dossier A adds a source.
 	srcA := &veille.Source{Name: "A Source", URL: srvA.URL, Enabled: true}
-	svc.AddSource(ctx, "user-A", "space-A", srcA)
-	svc.FetchNow(ctx, "user-A", "space-A", srcA.ID)
+	svc.AddSource(ctx, "dossier-A", srcA)
+	svc.FetchNow(ctx, "dossier-A", srcA.ID)
 
-	// User B adds a source.
+	// Dossier B adds a source.
 	srcB := &veille.Source{Name: "B Source", URL: srvB.URL, Enabled: true}
-	svc.AddSource(ctx, "user-B", "space-B", srcB)
-	svc.FetchNow(ctx, "user-B", "space-B", srcB.ID)
+	svc.AddSource(ctx, "dossier-B", srcB)
+	svc.FetchNow(ctx, "dossier-B", srcB.ID)
 
-	// User A should not see user B's data.
-	statsA, _ := svc.Stats(ctx, "user-A", "space-A")
-	statsB, _ := svc.Stats(ctx, "user-B", "space-B")
+	// Dossier A should not see dossier B's data.
+	statsA, _ := svc.Stats(ctx, "dossier-A")
+	statsB, _ := svc.Stats(ctx, "dossier-B")
 
 	if statsA.Sources != 1 {
-		t.Errorf("user A sources: got %d, want 1", statsA.Sources)
+		t.Errorf("dossier A sources: got %d, want 1", statsA.Sources)
 	}
 	if statsB.Sources != 1 {
-		t.Errorf("user B sources: got %d, want 1", statsB.Sources)
+		t.Errorf("dossier B sources: got %d, want 1", statsB.Sources)
 	}
 
 	// Search in A should only find A's content.
-	resultsA, _ := svc.Search(ctx, "user-A", "space-A", "quantum", 10)
+	resultsA, _ := svc.Search(ctx, "dossier-A", "quantum", 10)
 	if len(resultsA) == 0 {
-		t.Error("user A should find 'quantum'")
+		t.Error("dossier A should find 'quantum'")
 	}
 
-	resultsB, _ := svc.Search(ctx, "user-B", "space-B", "blockchain", 10)
+	resultsB, _ := svc.Search(ctx, "dossier-B", "blockchain", 10)
 	if len(resultsB) == 0 {
-		t.Error("user B should find 'blockchain'")
+		t.Error("dossier B should find 'blockchain'")
 	}
 
 	// Cross-check: A should NOT find B's content.
-	crossA, _ := svc.Search(ctx, "user-A", "space-A", "blockchain", 10)
+	crossA, _ := svc.Search(ctx, "dossier-A", "blockchain", 10)
 	if len(crossA) > 0 {
-		t.Error("user A should NOT find 'blockchain' (user B's data)")
+		t.Error("dossier A should NOT find 'blockchain' (dossier B's data)")
 	}
 }
 
-func TestE2E_SpaceLifecycle(t *testing.T) {
-	// WHAT: Create space, add source, delete space.
-	// WHY: Full space lifecycle validation.
+func TestE2E_DuplicateSourceRejected(t *testing.T) {
+	// WHAT: Adding the same source URL twice returns ErrDuplicateSource.
+	// WHY: Dedup prevents wasted network resources and duplicate results.
 	pool := newTestPool()
 	defer pool.Close()
-	spaces := &testSpaces{}
-	svc, _ := veille.New(pool, spaces, nil, nil)
+	svc, _ := veille.New(pool, nil, nil, veille.WithURLValidator(func(_ string) error { return nil }))
 	ctx := context.Background()
 
-	// Create space.
-	space, err := svc.CreateSpace(ctx, "user-1", "Legal Watch")
-	if err != nil {
-		t.Fatalf("create space: %v", err)
+	src1 := &veille.Source{Name: "First", URL: "https://example.com/feed", SourceType: "rss", FetchInterval: 3600000, Enabled: true}
+	if err := svc.AddSource(ctx, "d1", src1); err != nil {
+		t.Fatalf("first add: %v", err)
 	}
 
-	// List spaces.
-	listed, err := svc.ListSpaces(ctx, "user-1")
-	if err != nil {
-		t.Fatalf("list spaces: %v", err)
+	// Same URL — must fail.
+	src2 := &veille.Source{Name: "Duplicate", URL: "https://example.com/feed", SourceType: "rss", FetchInterval: 3600000, Enabled: true}
+	err := svc.AddSource(ctx, "d1", src2)
+	if err == nil {
+		t.Fatal("expected error for duplicate URL, got nil")
 	}
-	if len(listed) != 1 {
-		t.Fatalf("count: got %d", len(listed))
-	}
-
-	// Delete space.
-	if err := svc.DeleteSpace(ctx, "user-1", space.SpaceID); err != nil {
-		t.Fatalf("delete space: %v", err)
+	if !errors.Is(err, veille.ErrDuplicateSource) {
+		t.Errorf("expected ErrDuplicateSource, got: %v", err)
 	}
 
-	after, _ := svc.ListSpaces(ctx, "user-1")
-	if len(after) != 0 {
-		t.Errorf("after delete: got %d spaces", len(after))
+	// Normalized variant — must also fail.
+	src3 := &veille.Source{Name: "Variant", URL: "HTTPS://Example.COM/feed/", SourceType: "rss", FetchInterval: 3600000, Enabled: true}
+	err = svc.AddSource(ctx, "d1", src3)
+	if !errors.Is(err, veille.ErrDuplicateSource) {
+		t.Errorf("normalized variant should be duplicate, got: %v", err)
+	}
+
+	// Different URL — must succeed.
+	src4 := &veille.Source{Name: "Different", URL: "https://example.com/other", SourceType: "web", FetchInterval: 3600000, Enabled: true}
+	if err := svc.AddSource(ctx, "d1", src4); err != nil {
+		t.Errorf("different URL should succeed, got: %v", err)
+	}
+}
+
+func TestE2E_InvalidInput_Rejected(t *testing.T) {
+	// WHAT: AddSource rejects invalid inputs (DoS fetch_interval, unknown type).
+	// WHY: Input validation prevents DoS and unpredictable pipeline behavior.
+	pool := newTestPool()
+	defer pool.Close()
+	svc, _ := veille.New(pool, nil, nil, veille.WithURLValidator(func(_ string) error { return nil }))
+	ctx := context.Background()
+
+	cases := []struct {
+		name string
+		src  veille.Source
+	}{
+		{"low_interval", veille.Source{Name: "DoS", URL: "https://example.com", SourceType: "web", FetchInterval: 100}},
+		{"unknown_type", veille.Source{Name: "Evil", URL: "https://example.com", SourceType: "evil", FetchInterval: 3600000}},
+		{"empty_name", veille.Source{Name: "", URL: "https://example.com", SourceType: "web", FetchInterval: 3600000}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := svc.AddSource(ctx, "d1", &tc.src)
+			if !errors.Is(err, veille.ErrInvalidInput) {
+				t.Errorf("expected ErrInvalidInput, got: %v", err)
+			}
+		})
 	}
 }

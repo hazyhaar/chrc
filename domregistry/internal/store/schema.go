@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Complete SQLite DDL schema for domregistry — profiles, corrections, reports, instance_reputation.
 package store
 
 // Schema contains the complete DDL for the domregistry tables.

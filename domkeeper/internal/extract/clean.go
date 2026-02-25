@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Text normalization utilities — whitespace collapse, zero-width removal, hash preparation, paragraph splitting.
 package extract
 
 import (

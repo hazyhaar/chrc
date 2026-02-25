@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Splits text into overlapping chunks for RAG and FTS5 indexing with paragraph-aware boundaries.
 // Package chunk splits extracted text into overlapping chunks suitable for
 // RAG (Retrieval-Augmented Generation) and full-text search indexing.
 //

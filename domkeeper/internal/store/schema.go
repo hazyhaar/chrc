@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Complete SQLite DDL schema for domkeeper — folders, rules, content_cache, chunks, FTS5, GPU pricing.
 package store
 
 // Schema contains the complete DDL for the domkeeper tables.

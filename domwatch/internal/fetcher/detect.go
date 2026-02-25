@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Detects whether HTTP-fetched HTML has sufficient content or needs browser escalation.
 package fetcher
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CSS selector-based content extraction from parsed HTML documents.
 package extract
 
 import (

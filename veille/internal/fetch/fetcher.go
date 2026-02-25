@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY HTTP conditional GET fetcher with ETag, If-Modified-Since, and content-hash dedup.
 // Package fetch implements HTTP content fetching with conditional GET support.
 //
 // Supports ETag, If-Modified-Since, and content-hash-based change detection.

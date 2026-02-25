@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Computes text-to-markup density ratios for major DOM subtrees via in-page JS evaluation.
 package profiler
 
 import (

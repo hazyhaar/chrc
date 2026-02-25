@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD operations for the content_cache table — extracted content storage with hash-based dedup.
 package store
 
 import (

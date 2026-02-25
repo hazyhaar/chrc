@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Extraction CRUD: insert with FTS5 sync, list by source, existence check for dedup.
 package store
 
 import (
@@ -65,6 +66,19 @@ func (s *Store) ListExtractions(ctx context.Context, sourceID string, limit int)
 		result = append(result, &e)
 	}
 	return result, rows.Err()
+}
+
+// ExtractionExists checks if an extraction with the given source and content hash exists.
+// Used for deduplication in RSS/API pipelines to avoid re-processing identical content.
+func (s *Store) ExtractionExists(ctx context.Context, sourceID, contentHash string) (bool, error) {
+	var count int
+	err := s.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM extractions WHERE source_id = ? AND content_hash = ?`,
+		sourceID, contentHash).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("extraction exists: %w", err)
+	}
+	return count > 0, nil
 }
 
 // DeleteExtractionsBySource removes all extractions for a source.

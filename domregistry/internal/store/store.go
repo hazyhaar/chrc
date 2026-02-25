@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY SQLite database handle for domregistry — opens DB with HOROS pragmas and applies schema.
 // Package store provides the SQLite persistence layer for domregistry.
 package store
 

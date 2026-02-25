@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY All store data types: Source, Extraction, FetchLogEntry, SearchEngine, TrackedQuestion, Stats.
 package store
 
 // Source represents a monitored URL.
@@ -31,18 +32,6 @@ type Extraction struct {
 	MetadataJSON  string `json:"metadata_json"`
 }
 
-// Chunk represents a text fragment for RAG consumption.
-type Chunk struct {
-	ID           string `json:"id"`
-	ExtractionID string `json:"extraction_id"`
-	SourceID     string `json:"source_id"`
-	ChunkIndex   int    `json:"chunk_index"`
-	Text         string `json:"text"`
-	TokenCount   int    `json:"token_count"`
-	OverlapPrev  int    `json:"overlap_prev"`
-	CreatedAt    int64  `json:"created_at"`
-}
-
 // FetchLogEntry is one fetch attempt record.
 type FetchLogEntry struct {
 	ID           string `json:"id"`
@@ -55,11 +44,11 @@ type FetchLogEntry struct {
 	FetchedAt    int64  `json:"fetched_at"`
 }
 
-// SearchResult is a FTS5 search hit.
+// SearchResult is a FTS5 search hit on extractions.
 type SearchResult struct {
-	ChunkID      string  `json:"chunk_id"`
-	SourceID     string  `json:"source_id"`
 	ExtractionID string  `json:"extraction_id"`
+	SourceID     string  `json:"source_id"`
+	Title        string  `json:"title"`
 	Text         string  `json:"text"`
 	Rank         float64 `json:"rank"`
 }
@@ -68,6 +57,46 @@ type SearchResult struct {
 type SpaceStats struct {
 	Sources     int `json:"sources"`
 	Extractions int `json:"extractions"`
-	Chunks      int `json:"chunks"`
 	FetchLogs   int `json:"fetch_logs"`
+}
+
+// SearchEngine describes a search engine configuration.
+type SearchEngine struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Strategy      string `json:"strategy"`       // "api" | "generic"
+	URLTemplate   string `json:"url_template"`
+	APIConfigJSON string `json:"api_config"`      // JSON string
+	SelectorsJSON string `json:"selectors"`       // JSON string
+	StealthLevel  int    `json:"stealth_level"`
+	RateLimitMs   int64  `json:"rate_limit_ms"`
+	MaxPages      int    `json:"max_pages"`
+	Enabled       bool   `json:"enabled"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
+}
+
+// TrackedQuestion represents a question to be periodically searched.
+type TrackedQuestion struct {
+	ID              string `json:"id"`
+	Text            string `json:"text"`
+	Keywords        string `json:"keywords"`
+	Channels        string `json:"channels"`          // JSON array of engine IDs
+	ScheduleMs      int64  `json:"schedule_ms"`
+	MaxResults      int    `json:"max_results"`
+	FollowLinks     bool   `json:"follow_links"`
+	Enabled         bool   `json:"enabled"`
+	LastRunAt       *int64 `json:"last_run_at,omitempty"`
+	LastResultCount int    `json:"last_result_count"`
+	TotalResults    int    `json:"total_results"`
+	CreatedAt       int64  `json:"created_at"`
+	UpdatedAt       int64  `json:"updated_at"`
+}
+
+// SearchLogEntry records a user search query.
+type SearchLogEntry struct {
+	ID          string `json:"id"`
+	Query       string `json:"query"`
+	ResultCount int    `json:"result_count"`
+	SearchedAt  int64  `json:"searched_at"`
 }

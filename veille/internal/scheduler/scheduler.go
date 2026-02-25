@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Polls for due sources across shards and enqueues pipeline fetch jobs.
 // Package scheduler polls for due sources and enqueues fetch jobs.
 package scheduler
 
@@ -12,10 +13,9 @@ import (
 
 // Job is a fetch job emitted by the scheduler.
 type Job struct {
-	UserID   string `json:"user_id"`
-	SpaceID  string `json:"space_id"`
-	SourceID string `json:"source_id"`
-	URL      string `json:"url"`
+	DossierID string `json:"dossier_id"`
+	SourceID  string `json:"source_id"`
+	URL       string `json:"url"`
 }
 
 // Config configures the scheduler.
@@ -35,11 +35,11 @@ func (c *Config) defaults() {
 	}
 }
 
-// ShardResolver returns a *sql.DB for a given user×space.
-type ShardResolver func(ctx context.Context, userID, spaceID string) (*sql.DB, error)
+// ShardResolver returns a *sql.DB for a given dossierID.
+type ShardResolver func(ctx context.Context, dossierID string) (*sql.DB, error)
 
-// ShardLister returns all active (userID, spaceID) pairs.
-type ShardLister func(ctx context.Context) ([][2]string, error)
+// ShardLister returns all active dossier IDs.
+type ShardLister func(ctx context.Context) ([]string, error)
 
 // JobSink receives enqueued jobs.
 type JobSink func(ctx context.Context, job *Job) error
@@ -94,28 +94,25 @@ func (s *Scheduler) enqueueDueSources(ctx context.Context) {
 		return
 	}
 
-	for _, shard := range shards {
-		userID, spaceID := shard[0], shard[1]
-
-		db, err := s.resolve(ctx, userID, spaceID)
+	for _, dossierID := range shards {
+		db, err := s.resolve(ctx, dossierID)
 		if err != nil {
-			s.logger.Warn("scheduler: resolve shard", "user", userID, "space", spaceID, "error", err)
+			s.logger.Warn("scheduler: resolve shard", "dossier", dossierID, "error", err)
 			continue
 		}
 
 		st := store.NewStore(db)
 		due, err := st.DueSources(ctx, s.config.MaxFailCount)
 		if err != nil {
-			s.logger.Warn("scheduler: due sources", "user", userID, "space", spaceID, "error", err)
+			s.logger.Warn("scheduler: due sources", "dossier", dossierID, "error", err)
 			continue
 		}
 
 		for _, src := range due {
 			job := &Job{
-				UserID:   userID,
-				SpaceID:  spaceID,
-				SourceID: src.ID,
-				URL:      src.URL,
+				DossierID: dossierID,
+				SourceID:  src.ID,
+				URL:       src.URL,
 			}
 			if err := s.sink(ctx, job); err != nil {
 				s.logger.Warn("scheduler: enqueue job", "source_id", src.ID, "error", err)
@@ -123,7 +120,7 @@ func (s *Scheduler) enqueueDueSources(ctx context.Context) {
 		}
 
 		if len(due) > 0 {
-			s.logger.Debug("scheduler: enqueued", "user", userID, "space", spaceID, "jobs", len(due))
+			s.logger.Debug("scheduler: enqueued", "dossier", dossierID, "jobs", len(due))
 		}
 	}
 }

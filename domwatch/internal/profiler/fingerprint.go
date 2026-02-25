@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Generates a structural SHA-256 fingerprint of DOM tag hierarchy and finds high-density content selectors.
 package profiler
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Re-exports sink types and provides factory functions for stdout, webhook, and callback sinks.
 package domwatch
 
 import (

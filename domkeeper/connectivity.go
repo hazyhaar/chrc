@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers domkeeper service handlers (search, rules, stats, GPU) on a connectivity Router.
 package domkeeper
 
 import (

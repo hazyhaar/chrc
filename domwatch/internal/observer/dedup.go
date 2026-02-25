@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Deduplicates mutations arriving from both CDP and JS MutationObserver sources.
 package observer
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Tracks CDP node IDs to XPaths for mutation location reporting.
 package observer
 
 import (

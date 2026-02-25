@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY JSON marshal/unmarshal helpers for Batch, Snapshot, Profile and SHA-256 HTML hashing.
 package mutation
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Creates a domwatch.Sink callback that feeds batches, snapshots, and profiles into the Keeper pipeline.
 package domkeeper
 
 import (

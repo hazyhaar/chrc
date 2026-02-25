@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Tiered search (free/premium) with multi-pass retrieval, trust-level boosting, and GPU cost monitoring.
 package domkeeper
 
 import (

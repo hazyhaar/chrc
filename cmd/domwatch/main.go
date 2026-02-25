@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CLI entry point for domwatch — DOM observation daemon with single-page, profile, and config modes.
 // Command domwatch is the DOM observation daemon.
 //
 // Usage:

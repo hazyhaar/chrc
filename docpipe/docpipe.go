@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Core pipeline engine that dispatches document extraction by format (docx, odt, pdf, md, txt, html).
 // Package docpipe extracts structured text from document files.
 //
 // Supported formats:

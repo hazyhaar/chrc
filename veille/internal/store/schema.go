@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Applies the complete veille SQL schema including FTS5 indexes and triggers.
 package store
 
 import "database/sql"
@@ -38,36 +39,22 @@ CREATE TABLE IF NOT EXISTS extractions (
 CREATE INDEX IF NOT EXISTS idx_extractions_source ON extractions(source_id);
 CREATE INDEX IF NOT EXISTS idx_extractions_time ON extractions(extracted_at DESC);
 
--- Chunks: text fragments for RAG consumption
-CREATE TABLE IF NOT EXISTS chunks (
-    id              TEXT PRIMARY KEY,
-    extraction_id   TEXT NOT NULL REFERENCES extractions(id) ON DELETE CASCADE,
-    source_id       TEXT NOT NULL,
-    chunk_index     INTEGER NOT NULL,
-    text            TEXT NOT NULL,
-    token_count     INTEGER NOT NULL,
-    overlap_prev    INTEGER NOT NULL DEFAULT 0,
-    created_at      INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_chunks_extraction ON chunks(extraction_id, chunk_index);
-CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_id);
-
--- FTS5 on chunks
-CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
-    text, content='chunks', content_rowid='rowid',
+-- FTS5 on extractions (title + text)
+CREATE VIRTUAL TABLE IF NOT EXISTS extractions_fts USING fts5(
+    title, extracted_text, content='extractions', content_rowid='rowid',
     tokenize='unicode61 remove_diacritics 2'
 );
 
 -- Triggers to keep FTS5 in sync
-CREATE TRIGGER IF NOT EXISTS chunks_ai AFTER INSERT ON chunks BEGIN
-    INSERT INTO chunks_fts(rowid, text) VALUES (new.rowid, new.text);
+CREATE TRIGGER IF NOT EXISTS extractions_ai AFTER INSERT ON extractions BEGIN
+    INSERT INTO extractions_fts(rowid, title, extracted_text) VALUES (new.rowid, new.title, new.extracted_text);
 END;
-CREATE TRIGGER IF NOT EXISTS chunks_ad AFTER DELETE ON chunks BEGIN
-    INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', old.rowid, old.text);
+CREATE TRIGGER IF NOT EXISTS extractions_ad AFTER DELETE ON extractions BEGIN
+    INSERT INTO extractions_fts(extractions_fts, rowid, title, extracted_text) VALUES('delete', old.rowid, old.title, old.extracted_text);
 END;
-CREATE TRIGGER IF NOT EXISTS chunks_au AFTER UPDATE ON chunks BEGIN
-    INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', old.rowid, old.text);
-    INSERT INTO chunks_fts(rowid, text) VALUES (new.rowid, new.text);
+CREATE TRIGGER IF NOT EXISTS extractions_au AFTER UPDATE ON extractions BEGIN
+    INSERT INTO extractions_fts(extractions_fts, rowid, title, extracted_text) VALUES('delete', old.rowid, old.title, old.extracted_text);
+    INSERT INTO extractions_fts(rowid, title, extracted_text) VALUES (new.rowid, new.title, new.extracted_text);
 END;
 
 -- Fetch log (observability)
@@ -82,10 +69,63 @@ CREATE TABLE IF NOT EXISTS fetch_log (
     fetched_at      INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_fetch_log_source ON fetch_log(source_id, fetched_at DESC);
+
+-- Search engines (per-shard)
+CREATE TABLE IF NOT EXISTS search_engines (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL UNIQUE,
+    strategy      TEXT NOT NULL DEFAULT 'api',
+    url_template  TEXT NOT NULL,
+    api_config    TEXT NOT NULL DEFAULT '{}',
+    selectors     TEXT NOT NULL DEFAULT '{}',
+    stealth_level INTEGER NOT NULL DEFAULT 1,
+    rate_limit_ms INTEGER NOT NULL DEFAULT 2000,
+    max_pages     INTEGER NOT NULL DEFAULT 3,
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+);
+
+-- Tracked questions (per-shard)
+CREATE TABLE IF NOT EXISTS tracked_questions (
+    id                TEXT PRIMARY KEY,
+    text              TEXT NOT NULL,
+    keywords          TEXT NOT NULL DEFAULT '',
+    channels          TEXT NOT NULL DEFAULT '[]',
+    schedule_ms       INTEGER NOT NULL DEFAULT 86400000,
+    max_results       INTEGER NOT NULL DEFAULT 20,
+    follow_links      INTEGER NOT NULL DEFAULT 1,
+    enabled           INTEGER NOT NULL DEFAULT 1,
+    last_run_at       INTEGER,
+    last_result_count INTEGER NOT NULL DEFAULT 0,
+    total_results     INTEGER NOT NULL DEFAULT 0,
+    created_at        INTEGER NOT NULL,
+    updated_at        INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tracked_questions_enabled ON tracked_questions(enabled, last_run_at);
+
+-- Search log (per-shard, user search history)
+CREATE TABLE IF NOT EXISTS search_log (
+    id           TEXT PRIMARY KEY,
+    query        TEXT NOT NULL,
+    result_count INTEGER NOT NULL DEFAULT 0,
+    searched_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_search_log_time ON search_log(searched_at DESC);
+`
+
+// Migration adds the UNIQUE index on sources(url) for dedup.
+// Safe to run on existing databases (IF NOT EXISTS).
+const Migration001UniqueURL = `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_url_unique ON sources(url);
 `
 
 // ApplySchema creates all tables and indexes on the given database.
 func ApplySchema(db *sql.DB) error {
-	_, err := db.Exec(Schema)
+	if _, err := db.Exec(Schema); err != nil {
+		return err
+	}
+	// Apply migrations.
+	_, err := db.Exec(Migration001UniqueURL)
 	return err
 }

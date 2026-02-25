@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD operations for the chunks table — batch insert, get-by-content, delete.
 package store
 
 import (

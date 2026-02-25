@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines domwatch config structs and parses YAML configuration files with defaults.
 // Package config handles domwatch configuration from YAML files or SQLite.
 package config
 

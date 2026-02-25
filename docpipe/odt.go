@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Extracts structured text from .odt (OpenDocument) files by parsing content.xml from the ZIP archive.
 package docpipe
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Ingest log and source page tracking — records batch/snapshot processing status and page metadata.
 package store
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY XPath-based HTML content extraction — supports absolute paths, descendant axes, and attribute/position predicates.
 package extract
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines the Embedder interface, Config, factory New(), and noop implementation.
 // Package horosembed provides a transport-agnostic embedding client that
 // converts text to float32 vectors via any OpenAI-compatible embedding server.
 //

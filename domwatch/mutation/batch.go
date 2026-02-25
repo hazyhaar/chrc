@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines Op constants, Record, and Batch types — the structured mutation units emitted by domwatch.
 // Package mutation defines the structured types emitted by domwatch.
 // These are the public API contract: any consumer (domkeeper, custom pipelines)
 // imports this package to receive and process DOM observations.

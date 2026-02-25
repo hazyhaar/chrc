@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CSS selector-based HTML content extraction — supports tag, class, id, attribute, and descendant combinators.
 package extract
 
 import (

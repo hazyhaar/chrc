@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers horosembed embed/batch handlers on a connectivity.Router.
 package horosembed
 
 import (

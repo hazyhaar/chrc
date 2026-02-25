@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers all domregistry MCP tools — search profiles, submit corrections, report failures, leaderboard, stats, publish.
 package domregistry
 
 import (

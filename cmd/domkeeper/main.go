@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CLI entry point for domkeeper — content extraction engine with search, stats, and daemon mode.
 // Command domkeeper is the content extraction and search engine.
 //
 // Usage:

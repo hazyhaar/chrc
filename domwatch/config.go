@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Re-exports internal config types and LoadConfigFile for domwatch YAML configuration.
 package domwatch
 
 import (

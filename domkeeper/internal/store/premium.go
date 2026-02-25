@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Search tier analytics — logs free/premium search requests and provides aggregate stats.
 package store
 
 import (

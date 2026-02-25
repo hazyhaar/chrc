@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Handles SPA navigation detection, DOM settle wait, and document reset re-injection.
 package observer
 
 import (

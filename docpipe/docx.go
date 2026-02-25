@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Extracts structured text from .docx files by parsing word/document.xml from the ZIP archive.
 package docpipe
 
 import (

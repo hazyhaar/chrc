@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Ingestion consumer that processes domwatch events — matches rules, extracts content, chunks, and stores.
 // Package ingest implements the domwatch → domkeeper ingestion pipeline.
 //
 // Flow:

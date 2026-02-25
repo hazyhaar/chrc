@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY In-process callback sink delivering mutations via Go function calls with zero serialization.
 package sink
 
 import (

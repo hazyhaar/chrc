@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers domregistry service handlers (profiles, corrections, failures, leaderboard) on a connectivity Router.
 package domregistry
 
 import (

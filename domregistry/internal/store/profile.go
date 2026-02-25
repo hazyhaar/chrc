@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD for community DOM profiles — insert, search by domain, EMA success tracking, contributor management.
 package store
 
 import (

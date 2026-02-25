@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Fan-out router that delivers mutations to all configured sinks, logging errors without blocking.
 package sink
 
 import (

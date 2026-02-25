@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Orchestrates DOM structural profiling: landmarks, density, fingerprint, content selectors, and dynamic zones.
 // Package profiler analyses the structural properties of a page's DOM.
 // It produces a mutation.Profile that domkeeper uses to bootstrap
 // extraction rules.

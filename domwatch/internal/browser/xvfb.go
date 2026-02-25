@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Starts and stops an Xvfb virtual display for headful stealth browser mode.
 package browser
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY GPU pricing storage and serverless-vs-dedicated threshold computation for cost optimization.
 package store
 
 import (

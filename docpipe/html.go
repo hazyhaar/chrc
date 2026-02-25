@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Extracts structured sections (headings, paragraphs, tables, lists) from HTML files.
 package docpipe
 
 import (

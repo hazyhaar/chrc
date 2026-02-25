@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY OpenAI-compatible HTTP client for embedding API with batching and auto-dimension detection.
 package horosembed
 
 import (

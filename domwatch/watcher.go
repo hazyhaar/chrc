@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Top-level Watcher orchestrating browser, observers, sinks, auto stealth detection, and connectivity handlers.
 // Package domwatch provides a DOM observation daemon that orchestrates
 // Chrome headless as a disposable component. It captures DOM mutations,
 // produces snapshots, and profiles page structure.

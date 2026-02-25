@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Extracts content from plain text and Markdown files with heading detection and whitespace normalization.
 package docpipe
 
 import (

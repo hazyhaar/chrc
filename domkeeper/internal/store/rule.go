@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD operations for extraction_rules table — insert, match by URL/page, update, failure tracking.
 package store
 
 import (

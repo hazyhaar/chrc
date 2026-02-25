@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>veille</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+</head>
+<body>
+    <div id="app">
+        <header id="app-header"></header>
+        <div id="app-body">
+            <nav id="sidebar" class="hidden"></nav>
+            <main id="main-content"></main>
+        </div>
+    </div>
+    <div id="toast-container"></div>
+
+    <!-- Core (order matters) -->
+    <script src="/static/js/core/event-bus.js"></script>
+    <script src="/static/js/core/state.js"></script>
+    <script src="/static/js/ui/dom.js"></script>
+    <script src="/static/js/ui/toast.js"></script>
+    <script src="/static/js/ui/modal.js"></script>
+    <script src="/static/js/core/api.js"></script>
+    <script src="/static/js/core/router.js"></script>
+
+    <!-- Views -->
+    <script src="/static/js/views/login.js"></script>
+    <script src="/static/js/views/spaces.js"></script>
+    <script src="/static/js/views/dashboard.js"></script>
+    <script src="/static/js/views/sources.js"></script>
+    <script src="/static/js/views/source-detail.js"></script>
+    <script src="/static/js/views/questions.js"></script>
+    <script src="/static/js/views/question-detail.js"></script>
+    <script src="/static/js/views/search.js"></script>
+
+    <!-- Admin views -->
+    <script src="/static/js/views/admin-overview.js"></script>
+    <script src="/static/js/views/admin-shard.js"></script>
+    <script src="/static/js/views/admin-engines.js"></script>
+    <script src="/static/js/views/admin-source-registry.js"></script>
+    <script src="/static/js/views/admin-users.js"></script>
+
+    <!-- Bootstrap -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

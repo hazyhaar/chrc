@@ -41,11 +41,11 @@ func TestEnqueueDueSources(t *testing.T) {
 	var mu sync.Mutex
 	var jobs []*Job
 
-	resolve := func(ctx context.Context, userID, spaceID string) (*sql.DB, error) {
+	resolve := func(ctx context.Context, dossierID string) (*sql.DB, error) {
 		return db, nil
 	}
-	list := func(ctx context.Context) ([][2]string, error) {
-		return [][2]string{{"user-1", "space-1"}}, nil
+	list := func(ctx context.Context) ([]string, error) {
+		return []string{"user-1_space-1"}, nil
 	}
 	sink := func(ctx context.Context, job *Job) error {
 		mu.Lock()
@@ -86,8 +86,8 @@ func TestSkipHighFailCount(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-fail", Name: "Fail", URL: "https://fail.com", Enabled: true, FailCount: 10})
 
 	var jobs []*Job
-	resolve := func(ctx context.Context, userID, spaceID string) (*sql.DB, error) { return db, nil }
-	list := func(ctx context.Context) ([][2]string, error) { return [][2]string{{"u", "s"}}, nil }
+	resolve := func(ctx context.Context, dossierID string) (*sql.DB, error) { return db, nil }
+	list := func(ctx context.Context) ([]string, error) { return []string{"u_s"}, nil }
 	sink := func(ctx context.Context, job *Job) error { jobs = append(jobs, job); return nil }
 
 	sched := New(resolve, list, sink, Config{MaxFailCount: 5}, nil)

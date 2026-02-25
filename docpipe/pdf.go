@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Pure-Go PDF text extractor — decodes FlateDecode streams and parses Tj/TJ text operators.
 package docpipe
 
 import (

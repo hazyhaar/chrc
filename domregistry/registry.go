@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Main domregistry orchestrator — profile CRUD, correction submission with auto-accept, failure reporting, stats.
 // Package domregistry is the community registry for shared DOM profiles.
 //
 // It centralises extraction profiles from all domkeeper instances. Profiles

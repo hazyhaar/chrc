@@ -1,14 +1,16 @@
-// Package pipeline orchestrates the fetch → extract → chunk → store workflow.
+// CLAUDE:SUMMARY Pipeline orchestrator dispatching fetch jobs to source-type-specific handlers.
+// Package pipeline orchestrates the fetch → extract → store workflow.
+//
+// It dispatches to source-type-specific handlers (web, rss, api, document).
+// The web handler is the default fallback for unknown source types.
 package pipeline
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
-	"github.com/hazyhaar/chrc/chunk"
-	"github.com/hazyhaar/chrc/extract"
+	"github.com/hazyhaar/chrc/veille/internal/buffer"
 	"github.com/hazyhaar/chrc/veille/internal/fetch"
 	"github.com/hazyhaar/chrc/veille/internal/store"
 	"github.com/hazyhaar/pkg/idgen"
@@ -16,31 +18,58 @@ import (
 
 // Job represents a fetch task for one source in one shard.
 type Job struct {
-	UserID   string
-	SpaceID  string
-	SourceID string
-	URL      string
+	DossierID string
+	SourceID  string
+	URL       string
 }
 
-// Pipeline processes fetch jobs.
+// Pipeline processes fetch jobs, dispatching to type-specific handlers.
 type Pipeline struct {
-	fetcher   *fetch.Fetcher
-	chunkOpts chunk.Options
-	logger    *slog.Logger
-	newID     func() string
+	fetcher    *fetch.Fetcher
+	logger     *slog.Logger
+	newID      func() string
+	buffer     *buffer.Writer
+	handlers   map[string]SourceHandler
+	currentJob *Job // set during HandleJob for handlers to access
 }
 
 // New creates a Pipeline.
-func New(fetcher *fetch.Fetcher, chunkOpts chunk.Options, logger *slog.Logger) *Pipeline {
+func New(fetcher *fetch.Fetcher, logger *slog.Logger) *Pipeline {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Pipeline{
-		fetcher:   fetcher,
-		chunkOpts: chunkOpts,
-		logger:    logger,
-		newID:     idgen.New,
+	p := &Pipeline{
+		fetcher:  fetcher,
+		logger:   logger,
+		newID:    idgen.New,
+		handlers: make(map[string]SourceHandler),
 	}
+	// Register built-in handlers.
+	// "api" is now a connectivity service (api_fetch), auto-discovered by DiscoverHandlers.
+	p.handlers["web"] = &WebHandler{}
+	p.handlers["rss"] = &RSSHandler{}
+	p.handlers["document"] = NewDocumentHandler()
+	return p
+}
+
+// RegisteredTypes returns all registered source type names.
+func (p *Pipeline) RegisteredTypes() []string {
+	types := make([]string, 0, len(p.handlers))
+	for k := range p.handlers {
+		types = append(types, k)
+	}
+	return types
+}
+
+// SetBuffer configures the optional .md buffer writer.
+// If set, each successful extraction also writes a .md file to the buffer.
+func (p *Pipeline) SetBuffer(w *buffer.Writer) {
+	p.buffer = w
+}
+
+// RegisterHandler registers a handler for a source type.
+func (p *Pipeline) RegisterHandler(sourceType string, h SourceHandler) {
+	p.handlers[sourceType] = h
 }
 
 // HandleJob processes a single fetch job against a resolved shard store.
@@ -61,110 +90,18 @@ func (p *Pipeline) HandleJob(ctx context.Context, s *store.Store, job *Job) erro
 		return nil
 	}
 
-	start := time.Now()
+	// Set current job for handlers to access dossier context.
+	p.currentJob = job
+	defer func() { p.currentJob = nil }()
 
-	// Fetch with conditional GET.
-	result, err := p.fetcher.Fetch(ctx, src.URL, "", "", src.LastHash)
-
-	duration := time.Since(start).Milliseconds()
-
-	// Log the fetch attempt.
-	logEntry := &store.FetchLogEntry{
-		ID:         p.newID(),
-		SourceID:   job.SourceID,
-		DurationMs: duration,
-		FetchedAt:  time.Now().UnixMilli(),
+	// Dispatch to source-type-specific handler.
+	handler, ok := p.handlers[src.SourceType]
+	if !ok {
+		// Fallback to web handler for unknown types.
+		handler = p.handlers["web"]
+		log.Debug("pipeline: no handler for source_type, falling back to web",
+			"source_type", src.SourceType)
 	}
 
-	if err != nil {
-		logEntry.Status = "error"
-		logEntry.ErrorMessage = err.Error()
-		if result != nil {
-			logEntry.StatusCode = result.StatusCode
-		}
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, job.SourceID, err.Error())
-		log.Warn("pipeline: fetch failed", "error", err, "duration_ms", duration)
-		return fmt.Errorf("fetch: %w", err)
-	}
-
-	logEntry.StatusCode = result.StatusCode
-	logEntry.ContentHash = result.Hash
-
-	if !result.Changed {
-		logEntry.Status = "unchanged"
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchUnchanged(ctx, job.SourceID)
-		log.Debug("pipeline: content unchanged", "duration_ms", duration)
-		return nil
-	}
-
-	// Extract content.
-	extractResult, err := extract.Extract(result.Body, extract.Options{
-		Mode: "auto",
-	})
-	if err != nil {
-		logEntry.Status = "extract_error"
-		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, job.SourceID, "extract: "+err.Error())
-		log.Warn("pipeline: extraction failed", "error", err)
-		return fmt.Errorf("extract: %w", err)
-	}
-
-	cleanText := extract.CleanText(extractResult.Text)
-	if cleanText == "" {
-		logEntry.Status = "empty"
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchSuccess(ctx, job.SourceID, result.Hash)
-		log.Debug("pipeline: extracted text is empty")
-		return nil
-	}
-
-	now := time.Now().UnixMilli()
-
-	// Store extraction.
-	extraction := &store.Extraction{
-		ID:            p.newID(),
-		SourceID:      job.SourceID,
-		ContentHash:   extractResult.Hash,
-		Title:         extractResult.Title,
-		ExtractedText: cleanText,
-		ExtractedHTML: extractResult.HTML,
-		URL:           src.URL,
-		ExtractedAt:   now,
-	}
-	if err := s.InsertExtraction(ctx, extraction); err != nil {
-		return fmt.Errorf("store extraction: %w", err)
-	}
-
-	// Chunk the text.
-	chunks := chunk.Split(cleanText, p.chunkOpts)
-	if len(chunks) > 0 {
-		storeChunks := make([]*store.Chunk, len(chunks))
-		for i, ch := range chunks {
-			storeChunks[i] = &store.Chunk{
-				ID:           p.newID(),
-				ExtractionID: extraction.ID,
-				SourceID:     job.SourceID,
-				ChunkIndex:   ch.Index,
-				Text:         ch.Text,
-				TokenCount:   ch.TokenCount,
-				OverlapPrev:  ch.OverlapPrev,
-				CreatedAt:    now,
-			}
-		}
-		if err := s.InsertChunks(ctx, storeChunks); err != nil {
-			return fmt.Errorf("store chunks: %w", err)
-		}
-	}
-
-	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, job.SourceID, result.Hash)
-
-	log.Info("pipeline: processed",
-		"chunks", len(chunks), "text_len", len(cleanText), "duration_ms", duration)
-
-	return nil
+	return handler.Handle(ctx, s, src, p)
 }

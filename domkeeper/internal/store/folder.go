@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY CRUD operations for the folders table — hierarchical content organization.
 package store
 
 import (

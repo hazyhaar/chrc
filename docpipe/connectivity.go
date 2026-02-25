@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers docpipe extract and detect handlers on a connectivity Router for inter-service RPC.
 package docpipe
 
 import (

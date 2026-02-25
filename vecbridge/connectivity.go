@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers horosvec search/insert/stats handlers on a connectivity.Router.
 package vecbridge
 
 import (

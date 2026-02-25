@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines the Sink interface for delivering mutation batches, snapshots, and profiles to backends.
 // Package sink defines output backends for domwatch mutations.
 package sink
 

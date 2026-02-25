@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY SQLite database handle for domkeeper — opens DB with HOROS pragmas and applies schema.
 // Package store provides the SQLite persistence layer for domkeeper.
 package store
 

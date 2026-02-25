@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Handles shadow root attachment signals from injected JS (open roots observed via binding).
 package observer
 
 // handleShadowRoot processes a shadow root attachment signal from the

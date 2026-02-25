@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Batches and compresses mutation records using time-window debouncing and consecutive-op merging.
 package observer
 
 import (

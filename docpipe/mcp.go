@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers docpipe MCP tools (extract, detect, formats) on an MCP server.
 package docpipe
 
 import (

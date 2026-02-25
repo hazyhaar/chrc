@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Manages Chrome headless lifecycle: launch, memory monitoring, time-based recycling, and crash recovery.
 // Package browser manages Chrome headless-shell lifecycle: start, connect
 // via Rod, monitor memory, recycle on threshold or interval, reconnect
 // transparently after crash.

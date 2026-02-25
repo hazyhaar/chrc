@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY XPath-based content extraction from parsed HTML documents.
 package extract
 
 import (

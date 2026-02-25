@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Subscribes to CDP DOM events and feeds mutation records into the observer raw channel.
 package observer
 
 import (

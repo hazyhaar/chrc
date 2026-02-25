@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Detects HTML5 landmark elements (main, article, section, nav, header, footer, aside) via JS evaluation.
 package profiler
 
 import (

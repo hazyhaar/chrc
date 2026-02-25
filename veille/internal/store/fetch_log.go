@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Fetch log insert and history queries for source fetch tracking.
 package store
 
 import (

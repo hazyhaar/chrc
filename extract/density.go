@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Text density analysis to find highest-content DOM subtree, filtering boilerplate.
 package extract
 
 import (

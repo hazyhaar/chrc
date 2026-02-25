@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Loads watch_pages configuration from SQLite and provides a change watcher.
 package config
 
 import (

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Registers all domkeeper MCP tools — search, rules, folders, stats, content, GPU threshold.
 package domkeeper
 
 import (

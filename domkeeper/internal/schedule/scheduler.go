@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Freshness scheduler — periodically checks stale extraction rules and publishes VTQ refresh jobs.
 // Package schedule manages freshness checks and re-extraction scheduling.
 //
 // It periodically checks extraction rules that haven't been refreshed within

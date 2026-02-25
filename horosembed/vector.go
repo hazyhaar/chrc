@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Vector serialization, deserialization, cosine similarity, and L2 norm computation.
 package horosembed
 
 import (

@@ -5,9 +5,12 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/hazyhaar/chrc/chunk"
+	"github.com/hazyhaar/chrc/veille/internal/buffer"
 	"github.com/hazyhaar/chrc/veille/internal/fetch"
 	"github.com/hazyhaar/chrc/veille/internal/store"
 
@@ -29,7 +32,7 @@ func setupTest(t *testing.T) (*store.Store, func()) {
 }
 
 func TestHandleJob_Success(t *testing.T) {
-	// WHAT: Full pipeline success: fetch → extract → chunk → store.
+	// WHAT: Full pipeline success: fetch → extract → store.
 	// WHY: This is the core pipeline path.
 	s, cleanup := setupTest(t)
 	defer cleanup()
@@ -51,7 +54,7 @@ func TestHandleJob_Success(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-1", Name: "Test", URL: srv.URL, Enabled: true})
 
 	f := fetch.New(fetch.Config{})
-	p := New(f, chunk.Options{MaxTokens: 512}, nil)
+	p := New(f, nil)
 
 	err := p.HandleJob(ctx, s, &Job{SourceID: "src-1", URL: srv.URL})
 	if err != nil {
@@ -71,12 +74,6 @@ func TestHandleJob_Success(t *testing.T) {
 	exts, _ := s.ListExtractions(ctx, "src-1", 10)
 	if len(exts) == 0 {
 		t.Fatal("no extractions created")
-	}
-
-	// Verify chunks were created.
-	chunks, _ := s.ListChunks(ctx, 100, 0)
-	if len(chunks) == 0 {
-		t.Fatal("no chunks created")
 	}
 
 	// Verify fetch log.
@@ -107,7 +104,7 @@ func TestHandleJob_Unchanged(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-u", Name: "U", URL: srv.URL, Enabled: true})
 
 	f := fetch.New(fetch.Config{})
-	p := New(f, chunk.Options{MaxTokens: 512}, nil)
+	p := New(f, nil)
 
 	// First fetch — creates extraction.
 	p.HandleJob(ctx, s, &Job{SourceID: "src-u", URL: srv.URL})
@@ -137,7 +134,7 @@ func TestHandleJob_FetchError(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-e", Name: "E", URL: srv.URL, Enabled: true})
 
 	f := fetch.New(fetch.Config{})
-	p := New(f, chunk.Options{MaxTokens: 512}, nil)
+	p := New(f, nil)
 
 	err := p.HandleJob(ctx, s, &Job{SourceID: "src-e", URL: srv.URL})
 	if err == nil {
@@ -163,7 +160,7 @@ func TestHandleJob_DisabledSource(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-d", Name: "D", URL: "https://example.com", Enabled: false})
 
 	f := fetch.New(fetch.Config{})
-	p := New(f, chunk.Options{MaxTokens: 512}, nil)
+	p := New(f, nil)
 
 	err := p.HandleJob(ctx, s, &Job{SourceID: "src-d", URL: "https://example.com"})
 	if err != nil {
@@ -187,7 +184,7 @@ func TestHandleJob_304NotModified(t *testing.T) {
 	s.InsertSource(ctx, &store.Source{ID: "src-304", Name: "304", URL: srv.URL, Enabled: true})
 
 	f := fetch.New(fetch.Config{})
-	p := New(f, chunk.Options{MaxTokens: 512}, nil)
+	p := New(f, nil)
 
 	err := p.HandleJob(ctx, s, &Job{SourceID: "src-304", URL: srv.URL})
 	if err != nil {
@@ -197,5 +194,156 @@ func TestHandleJob_304NotModified(t *testing.T) {
 	src, _ := s.GetSource(ctx, "src-304")
 	if src.LastStatus != "unchanged" {
 		t.Errorf("status: got %q, want unchanged", src.LastStatus)
+	}
+}
+
+func TestPipeline_WritesBufferMD(t *testing.T) {
+	// WHAT: When buffer is configured, a .md file is written to pending.
+	// WHY: Buffer output feeds the RAG island.
+	s, cleanup := setupTest(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	htmlContent := `<!DOCTYPE html><html><head><title>Buffer Test</title></head>
+	<body><main><article>
+	<p>Content for buffer testing. This is long enough to be extracted and should
+	produce a markdown file in the pending directory for RAG consumption.</p>
+	</article></main></body></html>`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(htmlContent))
+	}))
+	defer srv.Close()
+
+	s.InsertSource(ctx, &store.Source{ID: "src-buf", Name: "BufTest", URL: srv.URL, Enabled: true})
+
+	bufDir := filepath.Join(t.TempDir(), "pending")
+	f := fetch.New(fetch.Config{})
+	p := New(f, nil)
+	p.SetBuffer(buffer.NewWriter(bufDir))
+
+	err := p.HandleJob(ctx, s, &Job{DossierID: "user-A_tech", SourceID: "src-buf", URL: srv.URL})
+	if err != nil {
+		t.Fatalf("handle job: %v", err)
+	}
+
+	// Verify .md file was created.
+	entries, err := os.ReadDir(bufDir)
+	if err != nil {
+		t.Fatalf("read dir: %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("no .md files in buffer pending dir")
+	}
+
+	// Read the .md and verify frontmatter.
+	data, _ := os.ReadFile(filepath.Join(bufDir, entries[0].Name()))
+	content := string(data)
+	if !strings.HasPrefix(content, "---\n") {
+		t.Error("file should start with frontmatter ---")
+	}
+	if !strings.Contains(content, "source_id: src-buf") {
+		t.Error("frontmatter missing source_id")
+	}
+	if !strings.Contains(content, "dossier_id: user-A_tech") {
+		t.Error("frontmatter missing dossier_id")
+	}
+	if !strings.Contains(content, "source_type: web") {
+		t.Error("frontmatter missing source_type")
+	}
+}
+
+func TestPipeline_NoBufferIfNil(t *testing.T) {
+	// WHAT: Without buffer configured, no .md files are created.
+	// WHY: Buffer is optional — existing behavior must not break.
+	s, cleanup := setupTest(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	htmlContent := `<!DOCTYPE html><html><head><title>No Buffer</title></head>
+	<body><main><p>Content without buffer. Long enough to extract properly.</p></main></body></html>`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(htmlContent))
+	}))
+	defer srv.Close()
+
+	s.InsertSource(ctx, &store.Source{ID: "src-nb", Name: "NoBuf", URL: srv.URL, Enabled: true})
+
+	f := fetch.New(fetch.Config{})
+	p := New(f, nil)
+	// No SetBuffer call — buffer is nil.
+
+	err := p.HandleJob(ctx, s, &Job{SourceID: "src-nb", URL: srv.URL})
+	if err != nil {
+		t.Fatalf("handle job: %v", err)
+	}
+
+	// Verify extraction was still created.
+	exts, _ := s.ListExtractions(ctx, "src-nb", 10)
+	if len(exts) == 0 {
+		t.Fatal("extraction should still be created without buffer")
+	}
+}
+
+func TestDispatch_Web(t *testing.T) {
+	// WHAT: Source with type "web" dispatches to WebHandler.
+	// WHY: Explicit web type should use the web handler.
+	s, cleanup := setupTest(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	htmlContent := `<!DOCTYPE html><html><head><title>Web</title></head>
+	<body><main><p>Web dispatch test content, needs to be long enough to pass extraction.</p></main></body></html>`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(htmlContent))
+	}))
+	defer srv.Close()
+
+	s.InsertSource(ctx, &store.Source{ID: "src-w", Name: "Web", URL: srv.URL, SourceType: "web", Enabled: true})
+
+	f := fetch.New(fetch.Config{})
+	p := New(f, nil)
+
+	err := p.HandleJob(ctx, s, &Job{SourceID: "src-w", URL: srv.URL})
+	if err != nil {
+		t.Fatalf("handle job: %v", err)
+	}
+
+	exts, _ := s.ListExtractions(ctx, "src-w", 10)
+	if len(exts) == 0 {
+		t.Fatal("web dispatch should create extractions")
+	}
+}
+
+func TestDispatch_UnknownFallsBackToWeb(t *testing.T) {
+	// WHAT: Unknown source_type falls back to web handler.
+	// WHY: Graceful degradation for unregistered types.
+	s, cleanup := setupTest(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	htmlContent := `<!DOCTYPE html><html><head><title>Unknown</title></head>
+	<body><main><p>Unknown type test content should still work via web fallback handler.</p></main></body></html>`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(htmlContent))
+	}))
+	defer srv.Close()
+
+	s.InsertSource(ctx, &store.Source{ID: "src-unk", Name: "Unknown", URL: srv.URL, SourceType: "telegram", Enabled: true})
+
+	f := fetch.New(fetch.Config{})
+	p := New(f, nil)
+
+	err := p.HandleJob(ctx, s, &Job{SourceID: "src-unk", URL: srv.URL})
+	if err != nil {
+		t.Fatalf("handle job: %v", err)
+	}
+
+	exts, _ := s.ListExtractions(ctx, "src-unk", 10)
+	if len(exts) == 0 {
+		t.Fatal("unknown type should fallback to web and create extractions")
 	}
 }

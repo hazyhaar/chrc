@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Entry point for the extraction pipeline with auto/css/xpath/density mode dispatch.
 // Package extract implements the content extraction pipeline.
 //
 // It supports multiple extraction modes:

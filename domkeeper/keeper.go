@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Main domkeeper orchestrator — wires store, ingestion consumer, scheduler, VTQ, and exposes search/rules API.
 // Package domkeeper is the auto-repairing content extraction engine.
 //
 // It sits between domwatch (DOM observation) and downstream consumers (MCP tools,

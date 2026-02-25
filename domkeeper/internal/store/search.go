@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY FTS5 full-text search on chunks — joins content_cache and rules, supports folder/trust filtering.
 package store
 
 import (

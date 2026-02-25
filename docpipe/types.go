@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines Format, Section, and Document types for the docpipe extraction pipeline.
 package docpipe
 
 // Format identifies a document type.

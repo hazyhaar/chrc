@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY HTTP-only page fetcher (stealth level 0) that produces Snapshots without a browser.
 // Package fetcher implements the HTTP-only acquisition path (stealth level 0).
 // No browser, no JS — a single HTTP GET that produces a Snapshot.
 // Covers ~90% of static sites.

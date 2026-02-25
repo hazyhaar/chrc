@@ -1,9 +1,9 @@
+// CLAUDE:SUMMARY Config struct for veille service: fetch, scheduler, data directory, and buffer settings.
 package veille
 
 import (
 	"time"
 
-	"github.com/hazyhaar/chrc/chunk"
 	fetchpkg "github.com/hazyhaar/chrc/veille/internal/fetch"
 	"github.com/hazyhaar/chrc/veille/internal/scheduler"
 )
@@ -13,14 +13,15 @@ type Config struct {
 	// Fetch settings
 	Fetch fetchpkg.Config
 
-	// Chunk splitting parameters
-	Chunk chunk.Options
-
 	// Scheduler settings
 	Scheduler scheduler.Config
 
 	// DataDir is the root directory for shard databases.
 	DataDir string
+
+	// BufferDir is the directory for .md buffer output (pending/).
+	// If empty, buffer writing is disabled.
+	BufferDir string
 }
 
 func (c *Config) defaults() {
@@ -32,15 +33,6 @@ func (c *Config) defaults() {
 	}
 	if c.Fetch.UserAgent == "" {
 		c.Fetch.UserAgent = "chrc-veille/1.0"
-	}
-	if c.Chunk.MaxTokens <= 0 {
-		c.Chunk.MaxTokens = 512
-	}
-	if c.Chunk.OverlapTokens <= 0 {
-		c.Chunk.OverlapTokens = 64
-	}
-	if c.Chunk.MinChunkTokens <= 0 {
-		c.Chunk.MinChunkTokens = 32
 	}
 	if c.Scheduler.CheckInterval <= 0 {
 		c.Scheduler.CheckInterval = time.Minute
@@ -59,11 +51,6 @@ func defaultConfig() *Config {
 			Timeout:   30 * time.Second,
 			MaxBytes:  10 * 1024 * 1024,
 			UserAgent: "chrc-veille/1.0",
-		},
-		Chunk: chunk.Options{
-			MaxTokens:      512,
-			OverlapTokens:  64,
-			MinChunkTokens: 32,
 		},
 		Scheduler: scheduler.Config{
 			CheckInterval: time.Minute,

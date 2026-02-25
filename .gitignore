@@ -1,0 +1,5 @@
+bin/
+/chrc
+*.db
+*.db-wal
+*.db-shm

@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Internal copy of the chunk package for domkeeper — overlapping text splitting for RAG/FTS5.
 // Package chunk splits extracted text into overlapping chunks suitable for
 // RAG (Retrieval-Augmented Generation) and full-text search indexing.
 //

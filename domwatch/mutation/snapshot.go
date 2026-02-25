@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Defines the Snapshot type representing a complete serialized DOM photo.
 package mutation
 
 // Snapshot is a complete DOM photo. Emitted at startup, periodically

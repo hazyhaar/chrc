@@ -1,3 +1,4 @@
+// CLAUDE:SUMMARY Text-density based content extraction — finds the DOM subtree with highest text-to-markup ratio.
 package extract
 
 import (
