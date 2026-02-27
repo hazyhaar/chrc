@@ -212,6 +212,12 @@ Champ `original_fetch_interval` : sauvegardé avant backoff, restauré après re
 - Bouton "Probe" visible si `fail_count > 0`
 - Badge `broken` (rouge foncé) distinct de `error` (rouge)
 
+## Securite
+
+- **SSRF** : `horosafe.ValidateURL` appele avant chaque fetch + sur chaque redirect via `CheckRedirect`
+- `Config.URLValidator` injectable (defaut: `horosafe.ValidateURL`), max 5 redirects
+- IPs privees/loopback/link-local/metadata (169.254.x.x) bloquees
+
 ## TODO
 
 - [ ] Phase 3 : Binary unifié `cmd/chrc/main.go` avec usertenant + MCP + HTTP

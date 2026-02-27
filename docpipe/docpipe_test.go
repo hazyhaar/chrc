@@ -221,3 +221,197 @@ func TestSupportedFormats(t *testing.T) {
 		t.Fatalf("expected 6 formats, got %d: %v", len(formats), formats)
 	}
 }
+
+// --- HTML hidden text filtering tests ---
+
+func TestHTML_HiddenDisplayNone(t *testing.T) {
+	// WHAT: Elements with display:none are excluded.
+	// WHY: Hidden text injection vector (SEO spam, prompt injection).
+	dir := t.TempDir()
+	path := filepath.Join(dir, "hidden.html")
+	html := `<!DOCTYPE html><html><body>
+<p>Visible text here</p>
+<div style="display:none">secret hidden text</div>
+</body></html>`
+	os.WriteFile(path, []byte(html), 0644)
+
+	pipe := New(Config{})
+	doc, err := pipe.Extract(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(doc.RawText, "secret hidden text") {
+		t.Error("display:none text should be excluded")
+	}
+	if !strings.Contains(doc.RawText, "Visible text") {
+		t.Error("visible text should be present")
+	}
+}
+
+func TestHTML_HiddenVisibility(t *testing.T) {
+	// WHAT: Elements with visibility:hidden are excluded.
+	// WHY: Another CSS technique for hiding injected text.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "vis.html")
+	html := `<!DOCTYPE html><html><body>
+<p>Normal text</p>
+<span style="visibility:hidden">hidden payload</span>
+</body></html>`
+	os.WriteFile(path, []byte(html), 0644)
+
+	pipe := New(Config{})
+	doc, err := pipe.Extract(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(doc.RawText, "hidden payload") {
+		t.Error("visibility:hidden text should be excluded")
+	}
+}
+
+func TestHTML_HiddenFontSize0(t *testing.T) {
+	// WHAT: Elements with font-size:0 are excluded.
+	// WHY: Zero-size text is invisible to humans but extractable.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "fs0.html")
+	html := `<!DOCTYPE html><html><body>
+<p>Readable text</p>
+<span style="font-size:0px">tiny invisible</span>
+</body></html>`
+	os.WriteFile(path, []byte(html), 0644)
+
+	pipe := New(Config{})
+	doc, err := pipe.Extract(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(doc.RawText, "tiny invisible") {
+		t.Error("font-size:0 text should be excluded")
+	}
+}
+
+func TestHTML_HiddenOpacity0(t *testing.T) {
+	// WHAT: Elements with opacity:0 are excluded.
+	// WHY: Transparent text is another injection vector.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "op0.html")
+	html := `<!DOCTYPE html><html><body>
+<p>Real content</p>
+<span style="opacity:0">ghost text</span>
+</body></html>`
+	os.WriteFile(path, []byte(html), 0644)
+
+	pipe := New(Config{})
+	doc, err := pipe.Extract(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(doc.RawText, "ghost text") {
+		t.Error("opacity:0 text should be excluded")
+	}
+}
+
+func TestHTML_VisibleTextKept(t *testing.T) {
+	// WHAT: Visible text is preserved after hidden filtering.
+	// WHY: The filter must not over-strip.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "keep.html")
+	html := `<!DOCTYPE html><html><body>
+<h1>Title</h1>
+<p style="color:red">Styled but visible</p>
+<p>Normal paragraph</p>
+</body></html>`
+	os.WriteFile(path, []byte(html), 0644)
+
+	pipe := New(Config{})
+	doc, err := pipe.Extract(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(doc.RawText, "Styled but visible") {
+		t.Error("visible styled text should be kept")
+	}
+	if !strings.Contains(doc.RawText, "Normal paragraph") {
+		t.Error("normal text should be kept")
+	}
+}
+
+// --- XML bomb tests ---
+
+func TestDOCX_XMLBomb(t *testing.T) {
+	// WHAT: DOCX with deeply nested XML returns depth error.
+	// WHY: XML bomb / billion laughs defense.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bomb.docx")
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := zip.NewWriter(f)
+
+	// Build XML with 300 levels of nesting (exceeds 256 limit).
+	var xmlB strings.Builder
+	xmlB.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
+	xmlB.WriteString(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>`)
+	for i := 0; i < 300; i++ {
+		xmlB.WriteString("<w:p>")
+	}
+	xmlB.WriteString("<w:r><w:t>deep</w:t></w:r>")
+	for i := 0; i < 300; i++ {
+		xmlB.WriteString("</w:p>")
+	}
+	xmlB.WriteString("</w:body></w:document>")
+
+	fw, _ := w.Create("word/document.xml")
+	fw.Write([]byte(xmlB.String()))
+	w.Close()
+	f.Close()
+
+	_, _, err = extractDocx(path)
+	if err == nil {
+		t.Fatal("expected error for deeply nested XML")
+	}
+	if !strings.Contains(err.Error(), "nesting depth") {
+		t.Errorf("expected 'nesting depth' error, got: %v", err)
+	}
+}
+
+func TestODT_XMLBomb(t *testing.T) {
+	// WHAT: ODT with deeply nested XML returns depth error.
+	// WHY: XML bomb defense for ODT format.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bomb.odt")
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := zip.NewWriter(f)
+
+	var xmlB strings.Builder
+	xmlB.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
+	xmlB.WriteString(`<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">`)
+	xmlB.WriteString(`<office:body><office:text>`)
+	for i := 0; i < 300; i++ {
+		xmlB.WriteString("<text:p>")
+	}
+	xmlB.WriteString("deep text")
+	for i := 0; i < 300; i++ {
+		xmlB.WriteString("</text:p>")
+	}
+	xmlB.WriteString("</office:text></office:body></office:document-content>")
+
+	fw, _ := w.Create("content.xml")
+	fw.Write([]byte(xmlB.String()))
+	w.Close()
+	f.Close()
+
+	_, _, err = extractODT(path)
+	if err == nil {
+		t.Fatal("expected error for deeply nested XML")
+	}
+	if !strings.Contains(err.Error(), "nesting depth") {
+		t.Errorf("expected 'nesting depth' error, got: %v", err)
+	}
+}

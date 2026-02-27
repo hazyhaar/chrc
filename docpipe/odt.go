@@ -34,6 +34,8 @@ func extractODT(path string) (string, []Section, error) {
 	}
 	defer rc.Close()
 
+	const maxXMLDepth = 256
+
 	decoder := xml.NewDecoder(rc)
 	var sections []Section
 	var title string
@@ -42,6 +44,7 @@ func extractODT(path string) (string, []Section, error) {
 	var headingLevel int
 	var inParagraph bool
 	var inList bool
+	var depth int
 
 	for {
 		tok, err := decoder.Token()
@@ -51,6 +54,10 @@ func extractODT(path string) (string, []Section, error) {
 
 		switch t := tok.(type) {
 		case xml.StartElement:
+			depth++
+			if depth > maxXMLDepth {
+				return "", nil, fmt.Errorf("XML nesting depth exceeds %d", maxXMLDepth)
+			}
 			switch {
 			case t.Name.Local == "h": // <text:h>
 				inHeading = true
@@ -76,6 +83,9 @@ func extractODT(path string) (string, []Section, error) {
 			}
 
 		case xml.EndElement:
+			if depth > 0 {
+				depth--
+			}
 			switch {
 			case t.Name.Local == "h" && inHeading:
 				inHeading = false

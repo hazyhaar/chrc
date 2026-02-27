@@ -33,12 +33,15 @@ func extractDocx(path string) (string, []Section, error) {
 	}
 	defer rc.Close()
 
+	const maxXMLDepth = 256
+
 	decoder := xml.NewDecoder(rc)
 	var sections []Section
 	var title string
 	var currentText strings.Builder
 	var inParagraph bool
 	var paragraphStyle string
+	var depth int
 
 	for {
 		tok, err := decoder.Token()
@@ -48,6 +51,10 @@ func extractDocx(path string) (string, []Section, error) {
 
 		switch t := tok.(type) {
 		case xml.StartElement:
+			depth++
+			if depth > maxXMLDepth {
+				return "", nil, fmt.Errorf("XML nesting depth exceeds %d", maxXMLDepth)
+			}
 			switch {
 			case t.Name.Local == "p":
 				inParagraph = true
@@ -69,6 +76,9 @@ func extractDocx(path string) (string, []Section, error) {
 			}
 
 		case xml.EndElement:
+			if depth > 0 {
+				depth--
+			}
 			if t.Name.Local == "p" && inParagraph {
 				inParagraph = false
 				text := strings.TrimSpace(currentText.String())

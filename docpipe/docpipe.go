@@ -82,6 +82,7 @@ func (p *Pipeline) Extract(ctx context.Context, path string) (*Document, error) 
 
 	var sections []Section
 	var title string
+	var pdfQuality *ExtractionQuality
 
 	switch format {
 	case FormatDocx:
@@ -89,7 +90,7 @@ func (p *Pipeline) Extract(ctx context.Context, path string) (*Document, error) 
 	case FormatODT:
 		title, sections, err = extractODT(path)
 	case FormatPDF:
-		title, sections, err = extractPDF(path)
+		title, sections, pdfQuality, err = extractPDF(path)
 	case FormatMD:
 		title, sections, err = extractMarkdown(path)
 	case FormatTXT:
@@ -123,6 +124,7 @@ func (p *Pipeline) Extract(ctx context.Context, path string) (*Document, error) 
 		Title:    title,
 		Sections: sections,
 		RawText:  sb.String(),
+		Quality:  pdfQuality,
 	}, nil
 }
 

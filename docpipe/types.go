@@ -28,5 +28,6 @@ type Document struct {
 	Format   Format    `json:"format"`
 	Title    string    `json:"title"`
 	Sections []Section `json:"sections"`
-	RawText  string    `json:"raw_text"` // concatenated full text
+	RawText  string              `json:"raw_text"`           // concatenated full text
+	Quality  *ExtractionQuality  `json:"quality,omitempty"`  // PDF extraction quality metrics
 }

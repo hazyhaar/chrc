@@ -4,11 +4,36 @@ package docpipe
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
+
+var hiddenStylePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)display\s*:\s*none`),
+	regexp.MustCompile(`(?i)visibility\s*:\s*hidden`),
+	regexp.MustCompile(`(?i)font-size\s*:\s*0[^1-9]`),
+	regexp.MustCompile(`(?i)opacity\s*:\s*0[^.]`),
+	regexp.MustCompile(`(?i)position\s*:\s*absolute[^;]*-\d{4,}`),
+}
+
+func hasHiddenStyle(n *html.Node) bool {
+	if n.Type != html.ElementNode {
+		return false
+	}
+	for _, a := range n.Attr {
+		if a.Key == "style" {
+			for _, pat := range hiddenStylePatterns {
+				if pat.MatchString(a.Val) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
 
 // extractHTMLFile extracts structured content from an HTML file.
 func extractHTMLFile(path string) (string, []Section, error) {
@@ -59,6 +84,9 @@ func extractHTMLNodes(n *html.Node, sections *[]Section) {
 		// Skip boilerplate.
 		switch n.DataAtom {
 		case atom.Script, atom.Style, atom.Noscript, atom.Nav, atom.Footer, atom.Header:
+			return
+		}
+		if hasHiddenStyle(n) {
 			return
 		}
 
@@ -131,6 +159,9 @@ func collectHTMLText(n *html.Node) string {
 		if n.Type == html.ElementNode {
 			switch n.DataAtom {
 			case atom.Script, atom.Style, atom.Noscript:
+				return
+			}
+			if hasHiddenStyle(n) {
 				return
 			}
 		}

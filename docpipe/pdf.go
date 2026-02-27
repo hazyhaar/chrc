@@ -1,110 +1,143 @@
-// CLAUDE:SUMMARY Pure-Go PDF text extractor — decodes FlateDecode streams and parses Tj/TJ text operators.
+// CLAUDE:SUMMARY PDF text extractor using pdfcpu — page-aware extraction with quality scoring.
+// CLAUDE:DEPENDS docpipe/quality.go
+// CLAUDE:EXPORTS extractPDF
 package docpipe
 
 import (
 	"bytes"
-	"compress/flate"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
-// extractPDF extracts text from a PDF file using pure Go.
-// It reads the PDF structure, finds content streams, decompresses FlateDecode
-// streams, and extracts text from PDF text operators (Tj, TJ, ', ").
-func extractPDF(path string) (string, []Section, error) {
-	data, err := os.ReadFile(path)
+// extractPDF extracts text from a PDF file using pdfcpu for structure-aware parsing.
+// Returns title, sections (one per page), extraction quality metrics, and error.
+func extractPDF(path string) (string, []Section, *ExtractionQuality, error) {
+	f, err := os.Open(path)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
+	}
+	defer f.Close()
+
+	conf := model.NewDefaultConfiguration()
+	ctx, err := api.ReadValidateAndOptimize(f, conf)
+	if err != nil {
+		return "", nil, nil, fmt.Errorf("pdfcpu read: %w", err)
 	}
 
-	// Extract all text from content streams.
-	allText := extractPDFText(data)
-	if allText == "" {
-		return "", nil, fmt.Errorf("no text content found in PDF")
-	}
+	hasImages := detectImageStreams(ctx)
 
-	// Split into sections by double-newlines or page breaks.
-	paragraphs := splitPDFParagraphs(allText)
-
+	var allText strings.Builder
 	var sections []Section
 	var title string
-	for _, p := range paragraphs {
-		text := strings.TrimSpace(p)
-		if text == "" {
+	totalChars := 0
+
+	for pageNr := 1; pageNr <= ctx.PageCount; pageNr++ {
+		pageText := extractPageText(ctx, pageNr)
+		if pageText == "" {
 			continue
 		}
+
+		totalChars += len([]rune(pageText))
+
 		if title == "" {
-			title = text
-			if len(title) > 200 {
-				title = title[:200]
+			// First non-empty line as title.
+			for _, line := range strings.Split(pageText, "\n") {
+				line = strings.TrimSpace(line)
+				if line != "" {
+					title = line
+					if len(title) > 200 {
+						title = title[:200]
+					}
+					break
+				}
 			}
 		}
+
 		sections = append(sections, Section{
-			Text: text,
-			Type: "paragraph",
+			Text: pageText,
+			Type: "page",
+			Metadata: map[string]string{
+				"page": strconv.Itoa(pageNr),
+			},
 		})
+
+		if allText.Len() > 0 {
+			allText.WriteByte('\n')
+		}
+		allText.WriteString(pageText)
 	}
 
-	return title, sections, nil
+	if len(sections) == 0 {
+		return "", nil, nil, fmt.Errorf("no text content found in PDF")
+	}
+
+	fullText := allText.String()
+	var charsPerPage float64
+	if ctx.PageCount > 0 {
+		charsPerPage = float64(totalChars) / float64(ctx.PageCount)
+	}
+
+	quality := &ExtractionQuality{
+		PageCount:      ctx.PageCount,
+		CharsPerPage:   charsPerPage,
+		PrintableRatio: computePrintableRatio(fullText),
+		WordlikeRatio:  computeWordlikeRatio(fullText),
+		HasImageStreams: hasImages,
+		VisualRefCount: countVisualRefs(fullText),
+	}
+
+	return title, sections, quality, nil
 }
 
-// extractPDFText finds all content streams in the PDF and extracts text.
-func extractPDFText(data []byte) string {
-	var sb strings.Builder
+// extractPageText extracts text from a single PDF page via pdfcpu content stream.
+func extractPageText(ctx *model.Context, pageNr int) string {
+	r, err := pdfcpu.ExtractPageContent(ctx, pageNr)
+	if err != nil {
+		return ""
+	}
+	data, err := io.ReadAll(r)
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+	return extractTextFromStream(data)
+}
 
-	// Find all stream...endstream blocks.
-	streamStart := []byte("stream")
-	streamEnd := []byte("endstream")
-
-	pos := 0
-	for {
-		idx := bytes.Index(data[pos:], streamStart)
-		if idx < 0 {
-			break
-		}
-		idx += pos + len(streamStart)
-
-		// Skip whitespace after "stream" keyword.
-		for idx < len(data) && (data[idx] == '\r' || data[idx] == '\n') {
-			idx++
-		}
-
-		endIdx := bytes.Index(data[idx:], streamEnd)
-		if endIdx < 0 {
-			break
-		}
-		endIdx += idx
-
-		streamData := data[idx:endIdx]
-		pos = endIdx + len(streamEnd)
-
-		// Try to decompress (FlateDecode is the most common).
-		decoded := tryDecompress(streamData)
-		text := extractTextFromStream(decoded)
-		if text != "" {
-			if sb.Len() > 0 {
-				sb.WriteByte('\n')
+// detectImageStreams checks if the PDF contains image XObjects.
+func detectImageStreams(ctx *model.Context) bool {
+	if ctx.Optimize != nil {
+		for pageNr := 1; pageNr <= ctx.PageCount; pageNr++ {
+			objNrs := pdfcpu.ImageObjNrs(ctx, pageNr)
+			if len(objNrs) > 0 {
+				return true
 			}
-			sb.WriteString(text)
 		}
 	}
-
-	return sb.String()
-}
-
-// tryDecompress attempts FlateDecode decompression. Returns raw data on failure.
-func tryDecompress(data []byte) []byte {
-	reader := flate.NewReader(bytes.NewReader(data))
-	decoded, err := io.ReadAll(reader)
-	reader.Close()
-	if err != nil || len(decoded) == 0 {
-		return data // Not compressed or error — return raw.
+	// Fallback: scan XRefTable for image subtype objects.
+	for _, entry := range ctx.Table {
+		if entry == nil || entry.Free || entry.Compressed {
+			continue
+		}
+		sd, ok := entry.Object.(types.StreamDict)
+		if !ok {
+			continue
+		}
+		if subtype, found := sd.Find("Subtype"); found {
+			if name, isName := subtype.(types.Name); isName && name == "Image" {
+				return true
+			}
+		}
 	}
-	return decoded
+	return false
 }
 
 // pdfStringRe matches PDF string literals in parentheses: (text here)

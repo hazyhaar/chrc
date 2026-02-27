@@ -11,6 +11,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/hazyhaar/pkg/horosafe"
 )
 
 // Result contains the outcome of a fetch.
@@ -29,6 +31,9 @@ type Config struct {
 	MaxBytes int64         // Max response body size. Default: 10MB.
 	// UserAgent sent with requests.
 	UserAgent string
+	// URLValidator validates URLs before fetch (SSRF prevention).
+	// Default: horosafe.ValidateURL.
+	URLValidator func(string) error
 }
 
 func (c *Config) defaults() {
@@ -41,6 +46,9 @@ func (c *Config) defaults() {
 	if c.UserAgent == "" {
 		c.UserAgent = "chrc-veille/1.0"
 	}
+	if c.URLValidator == nil {
+		c.URLValidator = horosafe.ValidateURL
+	}
 }
 
 // Fetcher performs HTTP requests with conditional GET.
@@ -49,11 +57,23 @@ type Fetcher struct {
 	config Config
 }
 
-// New creates a Fetcher.
+// New creates a Fetcher with SSRF protection on redirects.
 func New(cfg Config) *Fetcher {
 	cfg.defaults()
+	validate := cfg.URLValidator
 	return &Fetcher{
-		client: &http.Client{Timeout: cfg.Timeout},
+		client: &http.Client{
+			Timeout: cfg.Timeout,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 5 {
+					return fmt.Errorf("too many redirects (%d)", len(via))
+				}
+				if err := validate(req.URL.String()); err != nil {
+					return fmt.Errorf("redirect blocked (SSRF): %w", err)
+				}
+				return nil
+			},
+		},
 		config: cfg,
 	}
 }
@@ -62,6 +82,11 @@ func New(cfg Config) *Fetcher {
 // Returns Changed=false on 304 Not Modified.
 // If prevHash is provided and body hash matches, also returns Changed=false.
 func (f *Fetcher) Fetch(ctx context.Context, url, etag, lastMod, prevHash string) (*Result, error) {
+	// SSRF: validate URL before request.
+	if err := f.config.URLValidator(url); err != nil {
+		return nil, fmt.Errorf("URL blocked (SSRF): %w", err)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
