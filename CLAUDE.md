@@ -14,10 +14,10 @@ Déployé: https://veille.docbusinessia.fr (VPS BO, Basic Auth)
 | [`domkeeper/`](domkeeper/CLAUDE.md) | Content extraction engine auto-réparant, scheduling, chunking |
 | [`domregistry/`](domregistry/CLAUDE.md) | Registre de domaines surveillés |
 | [`docpipe/`](docpipe/CLAUDE.md) | Pipeline extraction documents (PDF, DOCX, ODT, HTML, texte) |
-| [`horosembed/`](horosembed/CLAUDE.md) | Client embeddings, vector operations |
+| `horosembed/` | **MIGRE vers `github.com/hazyhaar/pkg/horosembed`** (2026-02-25) |
 | [`vecbridge/`](vecbridge/CLAUDE.md) | Bridge vectoriel MCP entre horosvec et les services |
 | [`extract/`](extract/CLAUDE.md) | Extraction HTML (CSS, XPath, density, auto) — partagé domkeeper + veille |
-| [`chunk/`](chunk/CLAUDE.md) | Découpage texte RAG avec overlap |
+| `chunk/` | **MIGRE vers `github.com/hazyhaar/pkg/chunk`** (2026-02-25) |
 | [`cmd/`](cmd/CLAUDE.md) | Entry points CLI (chrc HTTP, domkeeper, domwatch) |
 | [`e2e/`](e2e/CLAUDE.md) | Tests d'intégration end-to-end cross-packages |
 | [`bin/`](bin/CLAUDE.md) | Binaires compilés (artefacts de build) |

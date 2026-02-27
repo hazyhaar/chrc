@@ -181,6 +181,9 @@ func main() {
 	}
 	defer svc.Close()
 
+	// Register veille handlers on connectivity router (serves Gateway + local calls).
+	svc.RegisterConnectivity(router)
+
 	// Optional MCP QUIC.
 	if mcpTransport == "quic" {
 		mcpSrv := mcp.NewServer(&mcp.Implementation{
@@ -232,6 +235,9 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"status": "ok"})
 	})
+
+	// Connectivity gateway — expose local handlers over HTTP for cross-process calls.
+	r.Mount("/connectivity", http.StripPrefix("/connectivity", router.Gateway()))
 
 	// Public auth endpoints (no session required).
 	loginRL := limiter.HTTPMiddleware(5, time.Minute)
