@@ -6,7 +6,7 @@ build:
 	CGO_ENABLED=0 go build -v -o $(BINARY) ./cmd/chrc/
 
 test:
-	CGO_ENABLED=0 go test -count=1 ./...
+	go test -race -count=1 -timeout 120s ./...
 
 clean:
 	rm -rf $(BIN_DIR)
