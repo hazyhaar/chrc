@@ -15,6 +15,7 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
+	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/hazyhaar/chrc/veille/internal/buffer"
 	"github.com/hazyhaar/chrc/veille/internal/fetch"
@@ -31,13 +32,14 @@ type Job struct {
 
 // Pipeline processes fetch jobs, dispatching to type-specific handlers.
 type Pipeline struct {
-	fetcher     *fetch.Fetcher
-	logger      *slog.Logger
-	newID       func() string
-	buffer      *buffer.Writer
-	handlers    map[string]SourceHandler
-	currentJob  *Job // set during HandleJob for handlers to access
-	mdConverter *converter.Converter
+	fetcher       *fetch.Fetcher
+	logger        *slog.Logger
+	newID         func() string
+	buffer        *buffer.Writer
+	handlers      map[string]SourceHandler
+	currentJob    *Job // set during HandleJob for handlers to access
+	mdConverter   *converter.Converter
+	htmlSanitizer *bluemonday.Policy
 }
 
 // New creates a Pipeline.
@@ -56,7 +58,8 @@ func New(fetcher *fetch.Fetcher, logger *slog.Logger) *Pipeline {
 				table.NewTablePlugin(),
 			),
 		),
-		handlers: make(map[string]SourceHandler),
+		htmlSanitizer: newHTMLSanitizer(),
+		handlers:      make(map[string]SourceHandler),
 	}
 	// Register built-in handlers.
 	// "api" is now a connectivity service (api_fetch), auto-discovered by DiscoverHandlers.
@@ -121,14 +124,17 @@ func (p *Pipeline) HandleJob(ctx context.Context, s *store.Store, job *Job) erro
 }
 
 // htmlToMarkdown converts HTML to structured markdown.
-// If conversion fails or produces empty output, returns the fallback plain text.
+// Pre-cleans with bluemonday (strip CSS/scripts/decorative spans, keep semantic structure)
+// then converts to markdown. Fallback uses strict tag stripping.
 func (p *Pipeline) htmlToMarkdown(html string, sourceURL string, fallback string) string {
 	if html == "" {
-		return fallback
+		return stripAllHTML(fallback)
 	}
-	result, err := p.mdConverter.ConvertString(html, converter.WithDomain(sourceURL))
+	// Pre-clean: keep semantic structure, strip CSS/scripts/decorative spans.
+	cleaned := p.htmlSanitizer.Sanitize(html)
+	result, err := p.mdConverter.ConvertString(cleaned, converter.WithDomain(sourceURL))
 	if err != nil || strings.TrimSpace(result) == "" {
-		return fallback
+		return stripAllHTML(fallback)
 	}
 	return strings.TrimSpace(result)
 }

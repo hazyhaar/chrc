@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hazyhaar/chrc/docpipe"
+	"github.com/hazyhaar/pkg/docpipe"
 	"github.com/hazyhaar/chrc/extract"
 	"github.com/hazyhaar/chrc/veille/internal/buffer"
 	"github.com/hazyhaar/chrc/veille/internal/store"

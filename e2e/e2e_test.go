@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hazyhaar/chrc/docpipe"
+	"github.com/hazyhaar/pkg/docpipe"
 	"github.com/hazyhaar/chrc/domkeeper"
 	"github.com/hazyhaar/chrc/domregistry"
 	"github.com/hazyhaar/chrc/horosembed"

@@ -10,6 +10,7 @@ require (
 	github.com/hazyhaar/horosvec v0.0.0-20260224091408-6993d04099a2
 	github.com/hazyhaar/pkg v0.0.0-20260224091357-ba355365ef24
 	github.com/hazyhaar/usertenant v0.0.0-20260225143450-128bc5ad5dbe
+	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/pdfcpu/pdfcpu v0.11.1
 	golang.org/x/crypto v0.48.0
@@ -25,11 +26,13 @@ replace github.com/hazyhaar/pkg => ../hazyhaar_pkg
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hhrutter/lzw v1.0.0 // indirect
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
 	github.com/hhrutter/tiff v1.0.2 // indirect
