@@ -1,3 +1,5 @@
+> **Schema technique** : voir [`domkeeper_schem.md`](domkeeper_schem.md) — lecture prioritaire avant tout code source.
+
 # domkeeper (CLI)
 
 Responsabilite: CLI du moteur d'extraction de contenu — daemon mode, recherche FTS5, et affichage de statistiques.

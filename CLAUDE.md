@@ -1,3 +1,5 @@
+> **Schema technique** : voir [`chrc_schem.md`](chrc_schem.md) — lecture prioritaire avant tout code source.
+
 # chrc ("cherche")
 
 Responsabilité: Acquisition de contenu multi-source — veille informationnelle, web scraping, extraction documents, DOM observation. Output = extractions FTS5 + `.md` buffer pour RAG.
@@ -13,7 +15,7 @@ Déployé: https://veille.docbusinessia.fr (VPS BO, Basic Auth)
 | [`domwatch/`](domwatch/CLAUDE.md) | DOM observation daemon — mutation tracking via CDP (go-rod) |
 | [`domkeeper/`](domkeeper/CLAUDE.md) | Content extraction engine auto-réparant, scheduling, chunking |
 | [`domregistry/`](domregistry/CLAUDE.md) | Registre de domaines surveillés |
-| [`docpipe/`](docpipe/CLAUDE.md) | Pipeline extraction documents (PDF, DOCX, ODT, HTML, texte) |
+| `docpipe/` | **MIGRE vers `github.com/hazyhaar/pkg/docpipe`** (2026-02-28) |
 | `horosembed/` | **MIGRE vers `github.com/hazyhaar/pkg/horosembed`** (2026-02-25) |
 | [`vecbridge/`](vecbridge/CLAUDE.md) | Bridge vectoriel MCP entre horosvec et les services |
 | [`extract/`](extract/CLAUDE.md) | Extraction HTML (CSS, XPath, density, auto) — partagé domkeeper + veille |

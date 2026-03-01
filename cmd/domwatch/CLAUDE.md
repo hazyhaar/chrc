@@ -1,3 +1,5 @@
+> **Schema technique** : voir [`domwatch_schem.md`](domwatch_schem.md) — lecture prioritaire avant tout code source.
+
 # domwatch (CLI)
 
 Responsabilite: CLI du daemon d'observation DOM — modes config YAML, single-page, et profiling structurel.

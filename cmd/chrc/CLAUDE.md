@@ -1,3 +1,5 @@
+> **Schema technique** : voir [`chrc_schem.md`](chrc_schem.md) — lecture prioritaire avant tout code source.
+
 # chrc (CLI)
 
 Responsabilite: Binaire HTTP du service veille — chi router, JWT auth, usertenant pool, MCP/QUIC optionnel. Deploye sur veille.docbusinessia.fr.
