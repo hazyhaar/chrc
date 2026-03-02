@@ -89,7 +89,7 @@ func isVoidElement(name string) bool {
 }
 
 // findContentSelectors generates CSS selectors for high text-density zones.
-func findContentSelectors(tab *browser.Tab, ctx context.Context) []string {
+func findContentSelectors(ctx context.Context, tab *browser.Tab) []string {
 	script := `() => {
 		function textLen(el) {
 			let len = 0;
@@ -142,6 +142,6 @@ func findContentSelectors(tab *browser.Tab, ctx context.Context) []string {
 	}
 
 	var sels []string
-	json.Unmarshal([]byte(res.Value.Str()), &sels)
+	_ = json.Unmarshal([]byte(res.Value.Str()), &sels)
 	return sels
 }

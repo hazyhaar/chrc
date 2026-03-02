@@ -2,7 +2,6 @@
 package observer
 
 import (
-	"context"
 	"time"
 
 	"github.com/go-rod/rod/lib/proto"
@@ -14,19 +13,16 @@ import (
 // childNodeInserted, childNodeRemoved, attributeModified, attributeRemoved,
 // characterDataModified, documentUpdated.
 type cdpListener struct {
-	obs  *Observer
-	ctx  context.Context
-	stop context.CancelFunc
+	obs *Observer
 }
 
 func newCDPListener(obs *Observer) *cdpListener {
-	ctx, cancel := context.WithCancel(obs.ctx)
-	return &cdpListener{obs: obs, ctx: ctx, stop: cancel}
+	return &cdpListener{obs: obs}
 }
 
 func (cl *cdpListener) start() {
 	// Enable the DOM domain to receive events.
-	proto.DOMEnable{}.Call(cl.obs.tab.Page)
+	_ = proto.DOMEnable{}.Call(cl.obs.tab.Page)
 
 	go cl.listenAll()
 }
@@ -35,7 +31,7 @@ func (cl *cdpListener) start() {
 func (cl *cdpListener) listenAll() {
 	p := cl.obs.tab.Page
 
-	wait := p.Context(cl.ctx).EachEvent(
+	wait := p.Context(cl.obs.ctx).EachEvent(
 		func(e *proto.DOMChildNodeInserted) {
 			cl.obs.nodes.addNode(e.ParentNodeID, e.Node)
 			xpath := cl.obs.nodes.getXPath(e.Node.NodeID)

@@ -103,7 +103,7 @@ func (k *Keeper) handleListRules(ctx context.Context, payload []byte) ([]byte, e
 	var req struct {
 		EnabledOnly bool `json:"enabled_only"`
 	}
-	json.Unmarshal(payload, &req) // OK if empty
+	_ = json.Unmarshal(payload, &req) // OK if empty
 
 	rules, err := k.ListRules(ctx, req.EnabledOnly)
 	if err != nil {

@@ -28,7 +28,7 @@ func (s *Store) InsertChunks(ctx context.Context, chunks []*Chunk) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO chunks (id, content_id, chunk_index, text, token_count, overlap_prev, metadata, created_at)

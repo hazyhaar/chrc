@@ -46,7 +46,7 @@ func NewWriter(pendingDir string) *Writer {
 
 // Write creates a .md file with YAML frontmatter + text body.
 // Returns the path of the written file.
-func (w *Writer) Write(ctx context.Context, meta Metadata, text string) (string, error) {
+func (w *Writer) Write(_ context.Context, meta Metadata, text string) (string, error) {
 	if err := os.MkdirAll(w.dir, 0o755); err != nil {
 		return "", fmt.Errorf("buffer: mkdir %s: %w", w.dir, err)
 	}
@@ -66,7 +66,7 @@ func (w *Writer) Write(ctx context.Context, meta Metadata, text string) (string,
 	}
 
 	if err := os.Rename(tmp, target); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return "", fmt.Errorf("buffer: rename: %w", err)
 	}
 

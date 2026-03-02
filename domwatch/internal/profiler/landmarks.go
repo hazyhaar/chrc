@@ -10,7 +10,7 @@ import (
 )
 
 // findLandmarks detects HTML5 landmark elements in the DOM.
-func findLandmarks(tab *browser.Tab, ctx context.Context) []mutation.Landmark {
+func findLandmarks(ctx context.Context, tab *browser.Tab) []mutation.Landmark {
 	script := `() => {
 		const tags = ['main', 'article', 'section', 'nav', 'header', 'footer', 'aside'];
 		const results = [];
@@ -46,6 +46,6 @@ func findLandmarks(tab *browser.Tab, ctx context.Context) []mutation.Landmark {
 	}
 
 	var landmarks []mutation.Landmark
-	json.Unmarshal([]byte(res.Value.Str()), &landmarks)
+	_ = json.Unmarshal([]byte(res.Value.Str()), &landmarks)
 	return landmarks
 }

@@ -29,7 +29,7 @@ func setupTestService(t *testing.T) (*Service, *sql.DB) {
 	}
 	db.Exec("PRAGMA journal_mode=WAL")
 	db.Exec("PRAGMA foreign_keys=ON")
-	if err := store.ApplySchema(db); err != nil {
+	if err = store.ApplySchema(db); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 	t.Cleanup(func() { db.Close() })

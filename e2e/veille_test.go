@@ -70,12 +70,12 @@ func TestE2E_FullCycle(t *testing.T) {
 
 	// Add a source.
 	src := &veille.Source{Name: "AI News", URL: srv.URL, Enabled: true}
-	if err := svc.AddSource(ctx, "d1", src); err != nil {
+	if err = svc.AddSource(ctx, "d1", src); err != nil {
 		t.Fatalf("add source: %v", err)
 	}
 
 	// Trigger fetch.
-	if err := svc.FetchNow(ctx, "d1", src.ID); err != nil {
+	if err = svc.FetchNow(ctx, "d1", src.ID); err != nil {
 		t.Fatalf("fetch now: %v", err)
 	}
 
@@ -211,7 +211,7 @@ func TestE2E_DuplicateSourceRejected(t *testing.T) {
 
 	// Different URL — must succeed.
 	src4 := &veille.Source{Name: "Different", URL: "https://example.com/other", SourceType: "web", FetchInterval: 3600000, Enabled: true}
-	if err := svc.AddSource(ctx, "d1", src4); err != nil {
+	if err = svc.AddSource(ctx, "d1", src4); err != nil {
 		t.Errorf("different URL should succeed, got: %v", err)
 	}
 }

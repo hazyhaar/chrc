@@ -76,11 +76,11 @@ func (c *Consumer) HandleBatch(ctx context.Context, batch mutation.Batch) error 
 		Status:       "processing",
 		RecordsCount: len(batch.Records),
 	}
-	c.store.InsertIngestEntry(ctx, entry)
+	_ = c.store.InsertIngestEntry(ctx, entry) // best-effort tracking
 
 	// Update source page last_seen.
 	if batch.PageID != "" {
-		c.store.UpsertSourcePage(ctx, &store.SourcePage{
+		_ = c.store.UpsertSourcePage(ctx, &store.SourcePage{
 			PageID:  batch.PageID,
 			PageURL: batch.PageURL,
 		})
@@ -97,14 +97,14 @@ func (c *Consumer) HandleBatch(ctx context.Context, batch mutation.Batch) error 
 	}
 
 	if !significant {
-		c.store.CompleteIngestEntry(ctx, entry.ID, "done", "", 0)
+		_ = c.store.CompleteIngestEntry(ctx, entry.ID, "done", "", 0)
 		log.Debug("ingest: batch skipped (no structural changes)")
 		return nil
 	}
 
 	// Note: full re-extraction requires the current page HTML.
 	// For batch-only events, we mark this for later snapshot-based extraction.
-	c.store.CompleteIngestEntry(ctx, entry.ID, "done", "awaiting snapshot for extraction", 0)
+	_ = c.store.CompleteIngestEntry(ctx, entry.ID, "done", "awaiting snapshot for extraction", 0)
 	log.Debug("ingest: batch processed, awaiting snapshot")
 	return nil
 }
@@ -122,11 +122,11 @@ func (c *Consumer) HandleSnapshot(ctx context.Context, snap mutation.Snapshot) e
 		PageID:     snap.PageID,
 		Status:     "processing",
 	}
-	c.store.InsertIngestEntry(ctx, entry)
+	_ = c.store.InsertIngestEntry(ctx, entry) // best-effort tracking
 
 	// Update source page.
 	if snap.PageID != "" {
-		c.store.UpsertSourcePage(ctx, &store.SourcePage{
+		_ = c.store.UpsertSourcePage(ctx, &store.SourcePage{
 			PageID:  snap.PageID,
 			PageURL: snap.PageURL,
 		})
@@ -135,12 +135,12 @@ func (c *Consumer) HandleSnapshot(ctx context.Context, snap mutation.Snapshot) e
 	// Find matching rules.
 	rules, err := c.store.MatchRules(ctx, snap.PageURL, snap.PageID)
 	if err != nil {
-		c.store.CompleteIngestEntry(ctx, entry.ID, "error", err.Error(), 0)
+		_ = c.store.CompleteIngestEntry(ctx, entry.ID, "error", err.Error(), 0)
 		return fmt.Errorf("match rules: %w", err)
 	}
 
 	if len(rules) == 0 {
-		c.store.CompleteIngestEntry(ctx, entry.ID, "done", "no matching rules", 0)
+		_ = c.store.CompleteIngestEntry(ctx, entry.ID, "done", "no matching rules", 0)
 		log.Debug("ingest: no matching rules for page")
 		return nil
 	}
@@ -150,14 +150,14 @@ func (c *Consumer) HandleSnapshot(ctx context.Context, snap mutation.Snapshot) e
 		n, err := c.extractAndStore(ctx, rule, snap)
 		if err != nil {
 			log.Warn("ingest: extraction failed", "rule_id", rule.ID, "rule_name", rule.Name, "error", err)
-			c.store.RecordRuleFailure(ctx, rule.ID)
+			_ = c.store.RecordRuleFailure(ctx, rule.ID)
 			continue
 		}
 		extractedCount += n
-		c.store.RecordRuleSuccess(ctx, rule.ID)
+		_ = c.store.RecordRuleSuccess(ctx, rule.ID)
 	}
 
-	c.store.CompleteIngestEntry(ctx, entry.ID, "done", "", extractedCount)
+	_ = c.store.CompleteIngestEntry(ctx, entry.ID, "done", "", extractedCount)
 	log.Info("ingest: snapshot processed", "rules_matched", len(rules), "extracted", extractedCount)
 	return nil
 }
@@ -195,7 +195,7 @@ func (c *Consumer) HandleProfile(ctx context.Context, prof mutation.Profile) err
 	}
 
 	// Store/update source page with profile data.
-	c.store.UpsertSourcePage(ctx, &store.SourcePage{
+	_ = c.store.UpsertSourcePage(ctx, &store.SourcePage{
 		PageURL:     prof.PageURL,
 		ProfileJSON: string(profJSON),
 	})

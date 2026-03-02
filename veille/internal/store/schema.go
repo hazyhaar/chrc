@@ -146,5 +146,5 @@ func applyColumnMigration(db *sql.DB, table, column, ddl string) {
 	if err != nil || count > 0 {
 		return
 	}
-	db.Exec(ddl)
+	_, _ = db.Exec(ddl)
 }

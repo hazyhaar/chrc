@@ -20,7 +20,10 @@ func MigrateNormalizeURLs(db *sql.DB) error {
 	var tableCount int
 	if err := db.QueryRow(
 		`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='sources'`,
-	).Scan(&tableCount); err != nil || tableCount == 0 {
+	).Scan(&tableCount); err != nil {
+		return err
+	}
+	if tableCount == 0 {
 		return nil
 	}
 
@@ -78,7 +81,7 @@ func MigrateNormalizeURLs(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var deleted, updated int
 

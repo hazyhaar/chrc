@@ -171,7 +171,7 @@ func (k *Keeper) registerListRulesTool(srv *mcp.Server) {
 
 	decode := func(req *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
 		var r listReq
-		json.Unmarshal(req.Params.Arguments, &r)
+		_ = json.Unmarshal(req.Params.Arguments, &r) // best-effort: empty payload is valid
 		return &kit.MCPDecodeResult{Request: &r}, nil
 	}
 

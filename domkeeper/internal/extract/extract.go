@@ -105,7 +105,7 @@ func hashText(text string) string {
 // renderNode serialises an HTML node subtree back to a string.
 func renderNode(n *html.Node) string {
 	var buf bytes.Buffer
-	html.Render(&buf, n)
+	_ = html.Render(&buf, n) // best-effort: bytes.Buffer write never fails
 	return buf.String()
 }
 

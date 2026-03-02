@@ -33,8 +33,8 @@ func (m *Manager) stopXvfb() {
 		return
 	}
 	if m.xvfb.Process != nil {
-		m.xvfb.Process.Kill()
-		m.xvfb.Wait()
+		_ = m.xvfb.Process.Kill()
+		_ = m.xvfb.Wait()
 	}
 	m.cfg.Logger.Info("browser: xvfb stopped")
 	m.xvfb = nil

@@ -73,14 +73,14 @@ func (h *QuestionHandler) Handle(ctx context.Context, s *store.Store, src *store
 	if err != nil {
 		logEntry.Status = "error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, err.Error())
 		return fmt.Errorf("question run: %w", err)
 	}
 
 	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, "")
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, "")
 
 	log.Info("question: handler complete", "new", newCount, "duration_ms", duration)
 	return nil

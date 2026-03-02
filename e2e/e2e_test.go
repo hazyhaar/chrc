@@ -146,7 +146,7 @@ func TestE2E_SharedRouter_AllStats(t *testing.T) {
 		}
 		resp := callConn(t, router, c.service, payload)
 		var result map[string]any
-		if err := json.Unmarshal(resp, &result); err != nil {
+		if err = json.Unmarshal(resp, &result); err != nil {
 			t.Errorf("%s: unmarshal: %v (raw: %s)", c.service, err, string(resp))
 			continue
 		}
@@ -185,7 +185,7 @@ func TestE2E_EmbedInsertSearch(t *testing.T) {
 		seedIDs[i] = []byte{byte(i >> 8), byte(i)}
 	}
 	iter := &sliceIter{vecs: seedVecs, ids: seedIDs}
-	if err := vecSvc.Index.Build(context.Background(), iter); err != nil {
+	if err = vecSvc.Index.Build(context.Background(), iter); err != nil {
 		t.Fatal(err)
 	}
 	vecSvc.RegisterConnectivity(router)
@@ -536,7 +536,7 @@ func TestE2E_BatchEmbedBulkInsert(t *testing.T) {
 		seedIDs[i] = []byte{byte(i >> 8), byte(i)}
 	}
 	iter := &sliceIter{vecs: seedVecs, ids: seedIDs}
-	if err := vecSvc.Index.Build(context.Background(), iter); err != nil {
+	if err = vecSvc.Index.Build(context.Background(), iter); err != nil {
 		t.Fatal(err)
 	}
 	vecSvc.RegisterConnectivity(router)

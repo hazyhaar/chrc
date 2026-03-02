@@ -134,7 +134,7 @@ func (s *Store) AcceptCorrection(ctx context.Context, correctionID string) error
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	now := time.Now().UnixMilli()
 
@@ -179,7 +179,7 @@ func (s *Store) RejectCorrection(ctx context.Context, correctionID string) error
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `UPDATE corrections SET validated = -1 WHERE id = ?`, correctionID); err != nil {
 		return err
@@ -245,7 +245,7 @@ func (s *Store) InsertReport(ctx context.Context, r *Report) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO reports (id, profile_id, instance_id, error_type, message, created_at)

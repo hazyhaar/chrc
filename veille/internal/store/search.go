@@ -39,7 +39,7 @@ func (s *Store) Search(ctx context.Context, query string, limit int) ([]*SearchR
 	}
 
 	// Log the search (fire-and-forget).
-	s.DB.ExecContext(ctx,
+	_, _ = s.DB.ExecContext(ctx,
 		`INSERT INTO search_log (id, query, result_count, searched_at) VALUES (?, ?, ?, ?)`,
 		idgen.New(), query, len(results), time.Now().UnixMilli())
 

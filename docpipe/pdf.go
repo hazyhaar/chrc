@@ -37,7 +37,7 @@ func extractPDF(path string) (string, []Section, *ExtractionQuality, error) {
 	hasImages := detectImageStreams(ctx)
 
 	var allText strings.Builder
-	var sections []Section
+	sections := make([]Section, 0, ctx.PageCount)
 	var title string
 	totalChars := 0
 
@@ -265,22 +265,3 @@ func cleanPDFText(text string) string {
 	return strings.TrimSpace(sb.String())
 }
 
-// splitPDFParagraphs splits text on double-newlines or multiple spaces.
-func splitPDFParagraphs(text string) []string {
-	// Normalise line endings.
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	text = strings.ReplaceAll(text, "\r", "\n")
-
-	parts := strings.Split(text, "\n\n")
-	var result []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			result = append(result, p)
-		}
-	}
-	if len(result) == 0 && text != "" {
-		result = []string{text}
-	}
-	return result
-}

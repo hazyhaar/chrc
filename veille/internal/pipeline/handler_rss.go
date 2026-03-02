@@ -31,7 +31,7 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	// Parse config.
 	cfg := RSSConfig{MaxEntries: 50}
 	if src.ConfigJSON != "" && src.ConfigJSON != "{}" {
-		json.Unmarshal([]byte(src.ConfigJSON), &cfg)
+		_ = json.Unmarshal([]byte(src.ConfigJSON), &cfg)
 	}
 	if cfg.MaxEntries <= 0 {
 		cfg.MaxEntries = 50
@@ -54,8 +54,8 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 		if result != nil {
 			logEntry.StatusCode = result.StatusCode
 		}
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, err.Error())
 		log.Warn("rss: fetch failed", "error", err)
 		return fmt.Errorf("rss fetch: %w", err)
 	}
@@ -68,8 +68,8 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	if err != nil {
 		logEntry.Status = "extract_error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, "parse: "+err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, "parse: "+err.Error())
 		log.Warn("rss: parse failed", "error", err)
 		return fmt.Errorf("rss parse: %w", err)
 	}
@@ -181,8 +181,8 @@ func (h *RSSHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	}
 
 	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, result.Hash)
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, result.Hash)
 
 	log.Info("rss: processed", "entries", len(f.Entries), "new", newCount, "duration_ms", duration)
 

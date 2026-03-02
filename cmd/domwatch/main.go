@@ -67,9 +67,7 @@ func run(ctx context.Context, logger *slog.Logger, configPath, singleURL, profil
 		return runConfig(ctx, logger, configPath)
 	}
 
-	fmt.Fprintln(os.Stderr, "usage: domwatch -config <file> | -url <url> | -profile <url>")
-	os.Exit(1)
-	return nil
+	return fmt.Errorf("usage: domwatch -config <file> | -url <url> | -profile <url>")
 }
 
 func runProfile(ctx context.Context, logger *slog.Logger, url string) error {
@@ -87,9 +85,12 @@ func runProfile(ctx context.Context, logger *slog.Logger, url string) error {
 		return fmt.Errorf("profile: %w", err)
 	}
 
-	data, _ := mutation.MarshalProfile(prof)
-	os.Stdout.Write(data)
-	os.Stdout.Write([]byte("\n"))
+	data, err := mutation.MarshalProfile(prof)
+	if err != nil {
+		return fmt.Errorf("marshal profile: %w", err)
+	}
+	_, _ = os.Stdout.Write(data)
+	_, _ = os.Stdout.Write([]byte("\n"))
 	return nil
 }
 

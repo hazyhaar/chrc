@@ -74,7 +74,7 @@ func TestE2E_QuestionLifecycle(t *testing.T) {
 		FollowLinks: false,
 		Enabled:     true,
 	}
-	if err := svc.AddQuestion(ctx, dossierID, q); err != nil {
+	if err = svc.AddQuestion(ctx, dossierID, q); err != nil {
 		t.Fatalf("add question: %v", err)
 	}
 	if q.ID == "" {
@@ -165,7 +165,7 @@ func TestE2E_QuestionLifecycle(t *testing.T) {
 	}
 
 	// Delete question.
-	if err := svc.DeleteQuestion(ctx, dossierID, q.ID); err != nil {
+	if err = svc.DeleteQuestion(ctx, dossierID, q.ID); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 

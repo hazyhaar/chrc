@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 )
 
@@ -181,29 +180,3 @@ func (nm *nodeMap) removeNodeLocked(nodeID proto.DOMNodeID) {
 	delete(nm.children, nodeID)
 }
 
-// xpathFromPage evaluates an XPath for an element using JS in the page.
-// Fallback for when the nodeMap doesn't have the node.
-func xpathFromPage(page *rod.Page, selector string) string {
-	res, err := page.Eval(fmt.Sprintf(`() => {
-		const el = document.querySelector(%q);
-		if (!el) return "";
-		const parts = [];
-		let node = el;
-		while (node && node.nodeType === 1) {
-			let idx = 0;
-			let sibling = node.previousSibling;
-			while (sibling) {
-				if (sibling.nodeType === 1 && sibling.nodeName === node.nodeName) idx++;
-				sibling = sibling.previousSibling;
-			}
-			const tag = node.nodeName.toLowerCase();
-			parts.unshift(idx > 0 ? tag + "[" + (idx+1) + "]" : tag);
-			node = node.parentNode;
-		}
-		return "/" + parts.join("/");
-	}`, selector))
-	if err != nil {
-		return ""
-	}
-	return res.Value.Str()
-}

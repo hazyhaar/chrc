@@ -73,7 +73,7 @@ func (s *Store) GetRule(ctx context.Context, id string) (*Rule, error) {
 		return nil, err
 	}
 
-	json.Unmarshal([]byte(sels), &r.Selectors)
+	_ = json.Unmarshal([]byte(sels), &r.Selectors) // best-effort JSON decode
 	r.FolderID = folderID.String
 	r.Enabled = enabled != 0
 	if lastSuccess.Valid {
@@ -113,7 +113,7 @@ func (s *Store) ListRules(ctx context.Context, enabledOnly bool) ([]*Rule, error
 			return nil, err
 		}
 
-		json.Unmarshal([]byte(sels), &r.Selectors)
+		_ = json.Unmarshal([]byte(sels), &r.Selectors) // best-effort JSON decode
 		r.FolderID = folderID.String
 		r.Enabled = enabled != 0
 		if lastSuccess.Valid {
@@ -156,7 +156,7 @@ func (s *Store) MatchRules(ctx context.Context, pageURL, pageID string) ([]*Rule
 			return nil, err
 		}
 
-		json.Unmarshal([]byte(sels), &r.Selectors)
+		_ = json.Unmarshal([]byte(sels), &r.Selectors) // best-effort JSON decode
 		r.FolderID = folderID.String
 		r.Enabled = enabled != 0
 		if lastSuccess.Valid {

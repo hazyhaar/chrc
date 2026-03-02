@@ -36,7 +36,7 @@ func TestServiceRoundTrip(t *testing.T) {
 	}
 
 	iter := &sliceIter{vecs: vecs, ids: ids}
-	if err := svc.Index.Build(context.Background(), iter); err != nil {
+	if err = svc.Index.Build(context.Background(), iter); err != nil {
 		t.Fatal(err)
 	}
 

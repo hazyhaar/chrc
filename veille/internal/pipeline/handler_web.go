@@ -36,8 +36,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 		if result != nil {
 			logEntry.StatusCode = result.StatusCode
 		}
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, err.Error())
 		log.Warn("web: fetch failed", "error", err, "duration_ms", duration)
 		return fmt.Errorf("fetch: %w", err)
 	}
@@ -47,8 +47,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 
 	if !result.Changed {
 		logEntry.Status = "unchanged"
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchUnchanged(ctx, src.ID)
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchUnchanged(ctx, src.ID)
 		log.Debug("web: content unchanged", "duration_ms", duration)
 		return nil
 	}
@@ -58,8 +58,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	if err != nil {
 		logEntry.Status = "extract_error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, "extract: "+err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, "extract: "+err.Error())
 		log.Warn("web: extraction failed", "error", err)
 		return fmt.Errorf("extract: %w", err)
 	}
@@ -67,8 +67,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	cleanText := extract.CleanText(extractResult.Text)
 	if cleanText == "" {
 		logEntry.Status = "empty"
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchSuccess(ctx, src.ID, result.Hash)
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchSuccess(ctx, src.ID, result.Hash)
 		log.Debug("web: extracted text is empty")
 		return nil
 	}
@@ -110,8 +110,8 @@ func (h *WebHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	}
 
 	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, result.Hash)
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, result.Hash)
 
 	log.Info("web: processed", "text_len", len(cleanText), "duration_ms", duration)
 

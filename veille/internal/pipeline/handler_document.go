@@ -46,8 +46,8 @@ func (h *DocumentHandler) Handle(ctx context.Context, s *store.Store, src *store
 		logEntry.DurationMs = duration
 		logEntry.Status = "extract_error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, "docpipe: "+err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, "docpipe: "+err.Error())
 		log.Warn("document: extraction failed", "error", err)
 		return fmt.Errorf("docpipe extract: %w", err)
 	}
@@ -56,8 +56,8 @@ func (h *DocumentHandler) Handle(ctx context.Context, s *store.Store, src *store
 	if text == "" {
 		logEntry.Status = "empty"
 		logEntry.DurationMs = time.Since(start).Milliseconds()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchSuccess(ctx, src.ID, "")
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchSuccess(ctx, src.ID, "")
 		log.Debug("document: extracted text is empty")
 		return nil
 	}
@@ -75,8 +75,8 @@ func (h *DocumentHandler) Handle(ctx context.Context, s *store.Store, src *store
 		logEntry.Status = "unchanged"
 		logEntry.ContentHash = contentHash
 		logEntry.DurationMs = time.Since(start).Milliseconds()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchUnchanged(ctx, src.ID)
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchUnchanged(ctx, src.ID)
 		log.Debug("document: content unchanged")
 		return nil
 	}
@@ -118,8 +118,8 @@ func (h *DocumentHandler) Handle(ctx context.Context, s *store.Store, src *store
 	logEntry.Status = "ok"
 	logEntry.ContentHash = contentHash
 	logEntry.DurationMs = duration
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, contentHash)
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, contentHash)
 
 	log.Info("document: processed",
 		"title", doc.Title, "text_len", len(text), "duration_ms", duration)

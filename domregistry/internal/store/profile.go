@@ -65,7 +65,7 @@ func (s *Store) GetProfile(ctx context.Context, id string) (*Profile, error) {
 		return nil, err
 	}
 
-	json.Unmarshal([]byte(contribs), &p.Contributors)
+	_ = json.Unmarshal([]byte(contribs), &p.Contributors) // best-effort JSON decode
 	return p, nil
 }
 
@@ -88,7 +88,7 @@ func (s *Store) GetProfileByPattern(ctx context.Context, pattern string) (*Profi
 		return nil, err
 	}
 
-	json.Unmarshal([]byte(contribs), &p.Contributors)
+	_ = json.Unmarshal([]byte(contribs), &p.Contributors) // best-effort JSON decode
 	return p, nil
 }
 
@@ -273,7 +273,7 @@ func scanProfiles(rows *sql.Rows) ([]*Profile, error) {
 		); err != nil {
 			return nil, err
 		}
-		json.Unmarshal([]byte(contribs), &p.Contributors)
+		_ = json.Unmarshal([]byte(contribs), &p.Contributors) // best-effort JSON decode
 		profiles = append(profiles, p)
 	}
 	return profiles, rows.Err()

@@ -204,7 +204,7 @@ func (r *Registry) registerLeaderboardTool(srv *mcp.Server) {
 
 	decode := func(req *mcp.CallToolRequest) (*kit.MCPDecodeResult, error) {
 		var rr leaderboardRequest
-		json.Unmarshal(req.Params.Arguments, &rr)
+		_ = json.Unmarshal(req.Params.Arguments, &rr) // best-effort: empty payload is valid
 		return &kit.MCPDecodeResult{Request: &rr}, nil
 	}
 

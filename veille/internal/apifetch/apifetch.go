@@ -55,7 +55,7 @@ func Fetch(ctx context.Context, client *http.Client, baseURL string, cfg Config)
 	if err != nil {
 		return nil, fmt.Errorf("apifetch: http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("apifetch: http %d", resp.StatusCode)

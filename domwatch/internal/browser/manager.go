@@ -184,13 +184,13 @@ func (m *Manager) launch(ctx context.Context) (*rod.Browser, error) {
 	}
 
 	b := rod.New().ControlURL(wsURL)
-	if err := b.Connect(); err != nil {
-		return nil, fmt.Errorf("browser: connect: %w", err)
+	if connectErr := b.Connect(); connectErr != nil {
+		return nil, fmt.Errorf("browser: connect: %w", connectErr)
 	}
 
 	// Ignore certificate errors for dev/testing.
-	if err := b.IgnoreCertErrors(true); err != nil {
-		log.Warn("browser: ignore cert errors failed", "error", err)
+	if certErr := b.IgnoreCertErrors(true); certErr != nil {
+		log.Warn("browser: ignore cert errors failed", "error", certErr)
 	}
 
 	return b, nil
@@ -229,7 +229,7 @@ func (m *Manager) recycleLocked(ctx context.Context) error {
 
 func (m *Manager) cleanup() error {
 	if m.browser != nil {
-		m.browser.Close()
+		_ = m.browser.Close()
 		m.browser = nil
 	}
 	if m.lnch != nil {
@@ -284,8 +284,8 @@ func (m *Manager) monitorLoop(ctx context.Context) {
 			if metrics > m.cfg.MemoryLimit {
 				log.Info("browser: memory limit exceeded",
 					"used", metrics, "limit", m.cfg.MemoryLimit)
-				if err := m.Recycle(ctx); err != nil {
-					log.Error("browser: recycle failed", "error", err)
+				if recycleErr := m.Recycle(ctx); recycleErr != nil {
+					log.Error("browser: recycle failed", "error", recycleErr)
 				}
 			}
 		}

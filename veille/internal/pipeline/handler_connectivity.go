@@ -87,8 +87,8 @@ func (b *ConnectivityBridge) Handle(ctx context.Context, s *store.Store, src *st
 	if err != nil {
 		logEntry.Status = "error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, err.Error())
 		log.Warn("connectivity: call failed", "error", err)
 		return fmt.Errorf("connectivity call %s: %w", b.service, err)
 	}
@@ -98,8 +98,8 @@ func (b *ConnectivityBridge) Handle(ctx context.Context, s *store.Store, src *st
 	if err := json.Unmarshal(respData, &resp); err != nil {
 		logEntry.Status = "extract_error"
 		logEntry.ErrorMessage = "parse response: " + err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, logEntry.ErrorMessage)
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, logEntry.ErrorMessage)
 		return fmt.Errorf("connectivity bridge: parse response: %w", err)
 	}
 
@@ -169,8 +169,8 @@ func (b *ConnectivityBridge) Handle(ctx context.Context, s *store.Store, src *st
 	}
 
 	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, "")
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, "")
 
 	log.Info("connectivity: processed", "service", b.service, "new", newCount, "duration_ms", duration)
 	return nil

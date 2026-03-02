@@ -83,7 +83,7 @@ func (rep *Repairer) TryRepair(ctx context.Context, st *store.Store, src *store.
 		newUA := pickAlternateUA(src.ConfigJSON)
 		if newUA == "" {
 			// All UAs exhausted, mark broken.
-			st.SetSourceStatus(ctx, src.ID, "broken")
+			_ = st.SetSourceStatus(ctx, src.ID, "broken")
 			log.Info("repair: all UAs exhausted, marked broken", "source", src.Name)
 			return ActionMarkBroken
 		}
@@ -124,7 +124,7 @@ func ProbeURL(ctx context.Context, url string, timeout time.Duration) (int, erro
 
 	client := &http.Client{
 		Timeout: timeout,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
 				return http.ErrUseLastResponse
 			}
@@ -135,7 +135,7 @@ func ProbeURL(ctx context.Context, url string, timeout time.Duration) (int, erro
 	if err != nil {
 		return 0, err
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return resp.StatusCode, nil
 }
 

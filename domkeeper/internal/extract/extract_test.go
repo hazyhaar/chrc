@@ -86,14 +86,14 @@ func TestExtract_XPath(t *testing.T) {
 }
 
 func TestExtract_CSSClassSelector(t *testing.T) {
-	html := []byte(`<html><body>
+	rawHTML := []byte(`<html><body>
 <div class="content main-text">
 <p>This is the actual content that needs to be extracted from the page. It has enough text to meet the threshold.</p>
 </div>
 <div class="sidebar">sidebar stuff</div>
 </body></html>`)
 
-	result, err := Extract(html, Options{
+	result, err := Extract(rawHTML, Options{
 		Mode:      "css",
 		Selectors: []string{"div.content"},
 	})
@@ -106,14 +106,14 @@ func TestExtract_CSSClassSelector(t *testing.T) {
 }
 
 func TestExtract_XPathAttribute(t *testing.T) {
-	html := []byte(`<html><body>
+	rawHTML := []byte(`<html><body>
 <div role="main">
 <p>Main content area with enough text to pass the minimum threshold for extraction purposes.</p>
 </div>
 <div role="complementary">sidebar</div>
 </body></html>`)
 
-	result, err := Extract(html, Options{
+	result, err := Extract(rawHTML, Options{
 		Mode:      "xpath",
 		Selectors: []string{"//div[@role='main']"},
 	})
@@ -142,9 +142,3 @@ func TestNormaliseForHash(t *testing.T) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

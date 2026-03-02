@@ -134,7 +134,7 @@ func (r *Registry) handleLeaderboard(ctx context.Context, payload []byte) ([]byt
 		Type  string `json:"type"` // "domain" or "instance"
 		Limit int    `json:"limit"`
 	}
-	json.Unmarshal(payload, &req)
+	_ = json.Unmarshal(payload, &req) // best-effort: empty payload is valid
 
 	if req.Limit <= 0 {
 		req.Limit = 50

@@ -113,7 +113,7 @@ func (sw *Sweeper) sweepShard(ctx context.Context, dossierID string) []SweepResu
 		return nil
 	}
 
-	var results []SweepResult
+	results := make([]SweepResult, 0, len(broken))
 	for _, src := range broken {
 		// Skip non-HTTP sources (question://, file paths).
 		if src.SourceType == "question" || src.SourceType == "document" {

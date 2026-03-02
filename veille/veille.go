@@ -561,10 +561,10 @@ func storeEngineToSearch(se *store.SearchEngine) *search.Engine {
 		UpdatedAt:    se.UpdatedAt,
 	}
 	if se.APIConfigJSON != "" && se.APIConfigJSON != "{}" {
-		json.Unmarshal([]byte(se.APIConfigJSON), &e.APIConfig)
+		_ = json.Unmarshal([]byte(se.APIConfigJSON), &e.APIConfig)
 	}
 	if se.SelectorsJSON != "" && se.SelectorsJSON != "{}" {
-		json.Unmarshal([]byte(se.SelectorsJSON), &e.Selectors)
+		_ = json.Unmarshal([]byte(se.SelectorsJSON), &e.Selectors)
 	}
 	return e
 }
@@ -652,10 +652,10 @@ func lookupGlobalEngine(ctx context.Context, catalogDB *sql.DB, id string) (*sea
 		Enabled:     enabled != 0,
 	}
 	if apiConfigJSON != "" && apiConfigJSON != "{}" {
-		json.Unmarshal([]byte(apiConfigJSON), &e.APIConfig)
+		_ = json.Unmarshal([]byte(apiConfigJSON), &e.APIConfig)
 	}
 	if selectorsJSON != "" && selectorsJSON != "{}" {
-		json.Unmarshal([]byte(selectorsJSON), &e.Selectors)
+		_ = json.Unmarshal([]byte(selectorsJSON), &e.Selectors)
 	}
 	return e, nil
 }

@@ -48,14 +48,20 @@ var engineRedactor = redact.New(
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("fatal", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	port := env("PORT", "8085")
 	secretInput := os.Getenv("SESSION_SECRET")
 	if secretInput == "" {
 		secretInput = os.Getenv("AUTH_PASSWORD")
 	}
 	if secretInput == "" {
-		slog.Error("SESSION_SECRET or AUTH_PASSWORD is required")
-		os.Exit(1)
+		return fmt.Errorf("SESSION_SECRET or AUTH_PASSWORD is required")
 	}
 	// Derive 32-byte JWT secret via SHA-256 (satisfies horosafe.MinSecretLen).
 	secretHash := sha256.Sum256([]byte(secretInput))
@@ -90,14 +96,12 @@ func main() {
 	tracePath := env("TRACE_DB", "db/traces.db")
 	traceDB, err := dbopen.Open(tracePath, dbopen.WithMkdirAll())
 	if err != nil {
-		slog.Error("trace db", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("trace db: %w", err)
 	}
 	defer traceDB.Close()
 	traceStore := trace.NewStore(traceDB)
 	if err := traceStore.Init(); err != nil {
-		slog.Error("trace init", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("trace init: %w", err)
 	}
 	trace.SetStore(traceStore)
 	defer traceStore.Close()
@@ -105,50 +109,47 @@ func main() {
 	// Catalog DB — opened with "sqlite-trace" driver for transparent SQL tracing.
 	catalogDB, err := dbopen.Open(catalogPath, dbopen.WithMkdirAll(), dbopen.WithTrace())
 	if err != nil {
-		slog.Error("catalog db", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("catalog db: %w", err)
 	}
 	defer catalogDB.Close()
 
 	if err := tenant.InitCatalog(ctx, catalogDB); err != nil {
-		slog.Error("init catalog", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("init catalog: %w", err)
 	}
 
 	// Extend users table with auth columns.
 	if err := migrateAuthColumns(catalogDB); err != nil {
-		slog.Error("migrate auth columns", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("migrate auth columns: %w", err)
 	}
 
 	// Global admin tables (engines + source registry).
 	if err := migrateGlobalTables(catalogDB); err != nil {
-		slog.Error("migrate global tables", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("migrate global tables: %w", err)
 	}
 
 	// Audit logger (writes to catalog DB).
 	auditLogger := audit.NewSQLiteLogger(catalogDB)
 	if err := auditLogger.Init(); err != nil {
-		slog.Error("audit init", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("audit init: %w", err)
 	}
 	defer auditLogger.Close()
 
 	// Rate limiter (writes to catalog DB).
 	limiter := ratelimit.New(catalogDB)
 	if err := limiter.Init(); err != nil {
-		slog.Error("ratelimit init", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("ratelimit init: %w", err)
 	}
-	limiter.AddRule("ip:login", 5, 60)
-	limiter.Reload()
+	if err := limiter.AddRule("ip:login", 5, 60); err != nil {
+		return fmt.Errorf("ratelimit add rule: %w", err)
+	}
+	if err := limiter.Reload(); err != nil {
+		return fmt.Errorf("ratelimit reload: %w", err)
+	}
 	limiter.StartReloader(ctx)
 
 	// Seed admin user if no admin exists.
 	if err := seedAdmin(ctx, catalogDB); err != nil {
-		slog.Error("seed admin", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("seed admin: %w", err)
 	}
 
 	// Seed global engines from catalog.
@@ -157,8 +158,7 @@ func main() {
 	// Usertenant pool.
 	pool, err := tenant.New(dataDir, catalogDB)
 	if err != nil {
-		slog.Error("usertenant pool", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("usertenant pool: %w", err)
 	}
 	defer pool.Close()
 
@@ -176,8 +176,7 @@ func main() {
 		BufferDir: bufferDir,
 	}, logger, veille.WithCatalogDB(catalogDB), veille.WithRouter(router), veille.WithAudit(auditLogger))
 	if err != nil {
-		slog.Error("veille service", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("veille service: %w", err)
 	}
 	defer svc.Close()
 
@@ -279,7 +278,7 @@ func main() {
 			return
 		}
 		defer f.Close()
-		io.Copy(w, f)
+		_, _ = io.Copy(w, f)
 	})
 	r.Handle("/static/*", http.FileServerFS(staticFS))
 
@@ -1039,15 +1038,19 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
+	srvErr := make(chan error, 1)
 	go func() {
 		slog.Info("server starting", "port", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("server error", "error", err)
-			os.Exit(1)
+			srvErr <- err
 		}
 	}()
 
-	<-ctx.Done()
+	select {
+	case err := <-srvErr:
+		return fmt.Errorf("server: %w", err)
+	case <-ctx.Done():
+	}
 	slog.Info("shutting down")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -1056,6 +1059,7 @@ func main() {
 		slog.Error("shutdown", "error", err)
 	}
 	slog.Info("server stopped")
+	return nil
 }
 
 // --- Auth middleware ---
@@ -1217,7 +1221,7 @@ func env(key, def string) string {
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func writeError(w http.ResponseWriter, code int, err error) {
@@ -1273,7 +1277,10 @@ func migrateGlobalTables(db *sql.DB) error {
 
 func seedGlobalEngines(ctx context.Context, db *sql.DB) {
 	var count int
-	db.QueryRowContext(ctx, `SELECT COUNT(*) FROM global_search_engines`).Scan(&count)
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM global_search_engines`).Scan(&count); err != nil {
+		slog.Warn("seed global engines: count", "error", err)
+		return
+	}
 	if count > 0 {
 		return
 	}
@@ -1299,7 +1306,10 @@ func seedGlobalEngines(ctx context.Context, db *sql.DB) {
 
 	// Seed source registry from catalog.
 	var regCount int
-	db.QueryRowContext(ctx, `SELECT COUNT(*) FROM source_registry`).Scan(&regCount)
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM source_registry`).Scan(&regCount); err != nil {
+		slog.Warn("seed source registry: count", "error", err)
+		return
+	}
 	if regCount > 0 {
 		return
 	}
@@ -1316,7 +1326,7 @@ func seedGlobalEngines(ctx context.Context, db *sql.DB) {
 				configJSON = "{}"
 			}
 			id := idgen.New()
-			db.ExecContext(ctx,
+			_, _ = db.ExecContext(ctx,
 				`INSERT OR IGNORE INTO source_registry (id, name, url, source_type, category, config_json, fetch_interval, enabled, created_at, updated_at)
 				VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
 				id, def.Name, def.URL, def.SourceType, cat, configJSON, interval, now, now)

@@ -112,8 +112,7 @@ func resolveConfig(configPath, dbPath string) (*domkeeper.Config, error) {
 	}
 
 	if cfg.DBPath == "" {
-		fmt.Fprintln(os.Stderr, "usage: domkeeper -config <file> | -db <path> [-search <query>] [-stats]")
-		os.Exit(1)
+		return nil, fmt.Errorf("usage: domkeeper -config <file> | -db <path> [-search <query>] [-stats]")
 	}
 	return cfg, nil
 }

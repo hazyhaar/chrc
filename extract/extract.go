@@ -66,8 +66,8 @@ func Extract(rawHTML []byte, opts Options) (*Result, error) {
 	case "auto":
 		// Try selectors first (if any), fall back to density.
 		if len(opts.Selectors) > 0 {
-			res, err := extractCSS(doc, opts.Selectors, title, opts.MinTextLen)
-			if err == nil && len(res.Text) >= opts.MinTextLen {
+			res, cssErr := extractCSS(doc, opts.Selectors, title, opts.MinTextLen)
+			if cssErr == nil && len(res.Text) >= opts.MinTextLen {
 				return res, nil
 			}
 		}
@@ -105,7 +105,7 @@ func hashText(text string) string {
 // renderNode serialises an HTML node subtree back to a string.
 func renderNode(n *html.Node) string {
 	var buf bytes.Buffer
-	html.Render(&buf, n)
+	_ = html.Render(&buf, n)
 	return buf.String()
 }
 
@@ -113,9 +113,9 @@ func renderNode(n *html.Node) string {
 func collectText(n *html.Node) string {
 	var sb strings.Builder
 	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.TextNode {
-			text := strings.TrimSpace(n.Data)
+	f = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			text := strings.TrimSpace(node.Data)
 			if text != "" {
 				if sb.Len() > 0 {
 					sb.WriteByte(' ')
@@ -124,13 +124,13 @@ func collectText(n *html.Node) string {
 			}
 		}
 		// Skip script, style, noscript.
-		if n.Type == html.ElementNode {
-			switch n.DataAtom {
+		if node.Type == html.ElementNode {
+			switch node.DataAtom {
 			case atom.Script, atom.Style, atom.Noscript:
 				return
 			}
 		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
 			f(c)
 		}
 	}

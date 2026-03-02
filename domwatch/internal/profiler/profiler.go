@@ -45,13 +45,13 @@ func Profile(ctx context.Context, tab *browser.Tab, cfg Config) (*mutation.Profi
 	}
 
 	// Step 2: Find landmarks.
-	landmarks := findLandmarks(tab, ctx)
+	landmarks := findLandmarks(ctx, tab)
 
 	// Step 3: Compute text density map.
-	densityMap := computeTextDensity(tab, ctx)
+	densityMap := computeTextDensity(ctx, tab)
 
 	// Step 4: Generate content selectors.
-	contentSels := findContentSelectors(tab, ctx)
+	contentSels := findContentSelectors(ctx, tab)
 
 	// Step 5: Compute structural fingerprint.
 	fp := computeFingerprint(html)
@@ -121,7 +121,7 @@ func observeZones(ctx context.Context, tab *browser.Tab, dur time.Duration) (dyn
 	}
 
 	var counts map[string]int
-	if err := json.Unmarshal([]byte(res.Value.Str()), &counts); err != nil {
+	if unmarshalErr := json.Unmarshal([]byte(res.Value.Str()), &counts); unmarshalErr != nil {
 		return nil, nil
 	}
 

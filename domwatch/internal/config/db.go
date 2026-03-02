@@ -58,13 +58,13 @@ func LoadPages(ctx context.Context, db *sql.DB) ([]DBPage, error) {
 		var snapMs int64
 		var profileInt int
 
-		if err := rows.Scan(&p.ID, &p.URL, &p.StealthLevel,
-			&selsJSON, &filtersJSON, &snapMs, &profileInt, &p.Status); err != nil {
-			return nil, err
+		if scanErr := rows.Scan(&p.ID, &p.URL, &p.StealthLevel,
+			&selsJSON, &filtersJSON, &snapMs, &profileInt, &p.Status); scanErr != nil {
+			return nil, scanErr
 		}
 
-		json.Unmarshal([]byte(selsJSON), &p.Selectors)
-		json.Unmarshal([]byte(filtersJSON), &p.Filters)
+		_ = json.Unmarshal([]byte(selsJSON), &p.Selectors)
+		_ = json.Unmarshal([]byte(filtersJSON), &p.Filters)
 		p.SnapshotInterval = time.Duration(snapMs) * time.Millisecond
 		p.Profile = profileInt != 0
 		pages = append(pages, p)

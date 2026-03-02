@@ -72,8 +72,8 @@ func callTool(t *testing.T, session *mcp.ClientSession, name string, args any) s
 	if err != nil {
 		t.Fatalf("CallTool(%s): %v", name, err)
 	}
-	if err := result.GetError(); err != nil {
-		t.Fatalf("CallTool(%s) tool error: %v", name, err)
+	if toolErr := result.GetError(); toolErr != nil {
+		t.Fatalf("CallTool(%s) tool error: %v", name, toolErr)
 	}
 	tc, ok := result.Content[0].(*mcp.TextContent)
 	if !ok {

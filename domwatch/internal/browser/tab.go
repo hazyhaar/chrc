@@ -43,8 +43,8 @@ func OpenTab(ctx context.Context, mgr *Manager, pageURL, pageID string, level St
 
 	// Apply resource blocking.
 	if len(mgr.cfg.ResourceBlocking) > 0 {
-		if err := applyResourceBlocking(page, mgr.cfg.ResourceBlocking); err != nil {
-			mgr.cfg.Logger.Warn("browser: resource blocking failed", "error", err)
+		if blockErr := applyResourceBlocking(page, mgr.cfg.ResourceBlocking); blockErr != nil {
+			mgr.cfg.Logger.Warn("browser: resource blocking failed", "error", blockErr)
 		}
 	}
 
@@ -54,13 +54,13 @@ func OpenTab(ctx context.Context, mgr *Manager, pageURL, pageID string, level St
 
 	err = page.Context(navCtx).Navigate(pageURL)
 	if err != nil {
-		page.Close()
+		_ = page.Close()
 		return nil, fmt.Errorf("browser: navigate %s: %w", pageURL, err)
 	}
 
 	// Wait for page load.
-	if err := page.Context(navCtx).WaitLoad(); err != nil {
-		mgr.cfg.Logger.Warn("browser: wait load timeout", "url", pageURL, "error", err)
+	if loadErr := page.Context(navCtx).WaitLoad(); loadErr != nil {
+		mgr.cfg.Logger.Warn("browser: wait load timeout", "url", pageURL, "error", loadErr)
 	}
 
 	return &Tab{

@@ -9,7 +9,7 @@ import (
 )
 
 // computeTextDensity calculates the text-to-markup ratio for major DOM subtrees.
-func computeTextDensity(tab *browser.Tab, ctx context.Context) map[string]float64 {
+func computeTextDensity(ctx context.Context, tab *browser.Tab) map[string]float64 {
 	script := `() => {
 		function textLen(el) {
 			let len = 0;
@@ -63,6 +63,6 @@ func computeTextDensity(tab *browser.Tab, ctx context.Context) map[string]float6
 	}
 
 	var density map[string]float64
-	json.Unmarshal([]byte(res.Value.Str()), &density)
+	_ = json.Unmarshal([]byte(res.Value.Str()), &density)
 	return density
 }

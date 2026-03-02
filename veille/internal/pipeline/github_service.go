@@ -43,7 +43,7 @@ func NewGitHubService(apiBaseURL string) connectivity.Handler {
 		// Parse config.
 		var cfg githubConfig
 		if len(req.Config) > 0 && string(req.Config) != "{}" {
-			json.Unmarshal(req.Config, &cfg)
+			_ = json.Unmarshal(req.Config, &cfg)
 		}
 		if cfg.Resource != "" {
 			resource = cfg.Resource
@@ -122,7 +122,7 @@ func fetchGitHubAPI(ctx context.Context, client *http.Client, url string) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
@@ -217,6 +217,7 @@ func parseIssuePR(obj map[string]any) githubItem {
 
 	var labels []string
 	if arr, ok := obj["labels"].([]any); ok {
+		labels = make([]string, 0, len(arr))
 		for _, l := range arr {
 			if lm, ok := l.(map[string]any); ok {
 				labels = append(labels, asStr(lm["name"]))

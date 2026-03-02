@@ -75,7 +75,7 @@ func setupAuditService(t *testing.T) (*Service, *sql.DB) {
 	}
 	db.Exec("PRAGMA journal_mode=WAL")
 	db.Exec("PRAGMA foreign_keys=ON")
-	if err := store.ApplySchema(db); err != nil {
+	if err = store.ApplySchema(db); err != nil {
 		t.Fatalf("apply schema: %v", err)
 	}
 	t.Cleanup(func() { db.Close() })
@@ -89,7 +89,7 @@ func setupAuditService(t *testing.T) (*Service, *sql.DB) {
 	t.Cleanup(func() { auditDB.Close() })
 
 	auditLogger := audit.NewSQLiteLogger(auditDB)
-	if err := auditLogger.Init(); err != nil {
+	if err = auditLogger.Init(); err != nil {
 		t.Fatalf("audit init: %v", err)
 	}
 

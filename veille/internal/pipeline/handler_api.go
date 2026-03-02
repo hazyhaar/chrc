@@ -54,8 +54,8 @@ func (h *APIHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	if err != nil {
 		logEntry.Status = "error"
 		logEntry.ErrorMessage = err.Error()
-		s.InsertFetchLog(ctx, logEntry)
-		s.RecordFetchError(ctx, src.ID, err.Error())
+		_ = s.InsertFetchLog(ctx, logEntry)
+		_ = s.RecordFetchError(ctx, src.ID, err.Error())
 		log.Warn("api: fetch failed", "error", err)
 		return fmt.Errorf("api fetch: %w", err)
 	}
@@ -123,8 +123,8 @@ func (h *APIHandler) Handle(ctx context.Context, s *store.Store, src *store.Sour
 	}
 
 	logEntry.Status = "ok"
-	s.InsertFetchLog(ctx, logEntry)
-	s.RecordFetchSuccess(ctx, src.ID, "")
+	_ = s.InsertFetchLog(ctx, logEntry)
+	_ = s.RecordFetchSuccess(ctx, src.ID, "")
 
 	log.Info("api: processed", "results", len(results), "new", newCount, "duration_ms", duration)
 
